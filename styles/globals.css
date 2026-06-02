@@ -1,76 +1,232 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
- 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
- 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
- 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
- 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
- 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
- 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
- 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* ── Medical Trust Color System ── */
+    --background: 210 40% 98%;          /* #F8FAFC */
+    --foreground: 222 47% 7%;           /* #0F172A */
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
- 
-    --radius: 0.5rem;
+    --card: 0 0% 100%;                  /* #FFFFFF */
+    --card-foreground: 222 47% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 7%;
+
+    /* Primary — Trust Blue #1E4A8A */
+    --primary: 215 63% 33%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary — Calm Teal #0D9488 */
+    --secondary: 173 81% 32%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 20% 46%;    /* #64748B */
+
+    /* Accent — soft blue hover */
+    --accent: 214 100% 97%;
+    --accent-foreground: 215 63% 33%;
+
+    /* Destructive — #DC2626 */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Amber — Warning #D97706 */
+    --warning: 38 92% 44%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Borders & Inputs */
+    --border: 214 32% 91%;              /* #E2E8F0 */
+    --input: 214 32% 91%;
+    --ring: 215 63% 33%;
+
+    /* Border radius */
+    --radius: 0.75rem;                  /* rounded-xl base */
+
+    /* Sidebar (dark) */
+    --sidebar-bg: 222 47% 7%;           /* #0F172A */
+    --sidebar-border: 217 33% 17%;      /* #1E293B */
+    --sidebar-text: 215 20% 65%;        /* #94A3B8 */
+    --sidebar-text-active: 0 0% 100%;
+    --sidebar-hover: 217 33% 12%;
+    --sidebar-active: 217 33% 15%;
+
+    /* Chart / status colors */
+    --status-scheduled: 215 63% 33%;
+    --status-confirmed: 173 81% 32%;
+    --status-cancelled: 0 72% 51%;
+    --status-completed: 215 20% 46%;
+    --status-no-show: 38 92% 44%;
   }
- 
+
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 7%;
     --foreground: 210 40% 98%;
- 
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 9%;
     --card-foreground: 210 40% 98%;
- 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 9%;
     --popover-foreground: 210 40% 98%;
- 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
- 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
- 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
- 
-    --accent: 217.2 32.6% 17.5%;
+    --primary: 210 80% 60%;
+    --primary-foreground: 222 47% 7%;
+    --secondary: 173 60% 45%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 17%;
     --accent-foreground: 210 40% 98%;
- 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
- 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 210 80% 60%;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  /* ── Stat Card Variants ── */
+  .stat-card-blue {
+    @apply bg-blue-50 text-blue-600;
+  }
+  .stat-card-teal {
+    @apply bg-teal-50 text-teal-600;
+  }
+  .stat-card-amber {
+    @apply bg-amber-50 text-amber-600;
+  }
+  .stat-card-red {
+    @apply bg-red-50 text-red-600;
+  }
+  .stat-card-violet {
+    @apply bg-violet-50 text-violet-600;
+  }
+
+  /* ── Sidebar nav item ── */
+  .nav-item {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150;
+    color: hsl(var(--sidebar-text));
+  }
+  .nav-item:hover {
+    background-color: hsl(var(--sidebar-hover));
+    color: hsl(210 40% 90%);
+  }
+  .nav-item.active {
+    background-color: hsl(var(--sidebar-active));
+    color: hsl(0 0% 100%);
+    @apply border-l-2 border-blue-400;
+    padding-left: 10px; /* 12px - 2px border */
+  }
+  .nav-item.active .nav-icon {
+    @apply text-blue-400;
+  }
+
+  /* ── Channel badges ── */
+  .badge-whatsapp {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700;
+  }
+  .badge-voice {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700;
+  }
+  .badge-dashboard {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-600;
+  }
+  .badge-calcom {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-violet-100 text-violet-700;
+  }
+
+  /* ── Glass card ── */
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm border border-white/50 shadow-sm;
+  }
+
+  /* ── Focus ring ── */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+  }
+}
+
+@layer utilities {
+  /* Safe area for mobile bottom navigation */
+  .pb-safe {
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  }
+  .mb-nav {
+    margin-bottom: 5rem; /* Bottom nav height */
+  }
+
+  /* Scrollbar styling */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 2px;
+  }
+
+  /* Text gradient */
+  .text-gradient-blue {
+    @apply bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent;
+  }
+  .text-gradient-teal {
+    @apply bg-gradient-to-r from-teal-500 to-blue-600 bg-clip-text text-transparent;
+  }
+
+  /* ── Calendar Blocked Day Modifiers ── */
+  /* All-day blocked: red tint (day is disabled, shown with red dot) */
+  .day-all-blocked {
+    position: relative;
+    color: #fca5a5 !important;
+    text-decoration: line-through;
+  }
+  .day-all-blocked::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: #f87171;
+  }
+
+  /* Partial blocked: amber dot indicator */
+  .day-partial-blocked {
+    position: relative;
+  }
+  .day-partial-blocked::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: #fbbf24;
   }
 }
