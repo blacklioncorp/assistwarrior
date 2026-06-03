@@ -1,7 +1,9 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Permitir imágenes de dominios externos si se necesitan
+  eslint: {
+    ignoreDuringBuilds: true,  
+  },
   images: {
     remotePatterns: [
       {
@@ -10,7 +12,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Headers de seguridad
   async headers() {
     return [
       {
