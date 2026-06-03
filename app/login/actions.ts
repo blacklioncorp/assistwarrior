@@ -30,7 +30,7 @@ export async function login(formData: FormData) {
         console.log('[LOGIN DEBUG] User ID:', matchedUser.id)
         console.log('[LOGIN DEBUG] Email confirmed:', matchedUser.email_confirmed_at)
         console.log('[LOGIN DEBUG] Identities count:', matchedUser.identities?.length)
-        matchedUser.identities?.forEach((identity: { provider: string; identity_data: Record<string, unknown> }, i: number) => {
+        matchedUser.identities?.forEach((identity: { provider: string; identity_data?: Record<string, unknown> }, i: number) => {
           console.log(`[LOGIN DEBUG]   Identity ${i}: provider=${identity.provider}, email=${identity.identity_data?.email}`)
         })
         console.log('[LOGIN DEBUG] App metadata:', JSON.stringify(matchedUser.app_metadata))
