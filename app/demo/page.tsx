@@ -37,27 +37,27 @@ const statusConfig: Record<AppointmentStatus, {
   badge: 'success' | 'info' | 'destructive' | 'secondary' | 'warning'
   icon: React.ElementType
 }> = {
-  scheduled:  { label: 'Pendiente',  badge: 'warning',     icon: Clock },
-  confirmed:  { label: 'Confirmada', badge: 'success',     icon: CheckCircle2 },
-  cancelled:  { label: 'Cancelada',  badge: 'destructive', icon: XCircle },
-  completed:  { label: 'Completada', badge: 'secondary',   icon: CheckCircle2 },
-  no_show:    { label: 'No asistió', badge: 'warning',     icon: AlertCircle },
+  scheduled: { label: 'Pendiente', badge: 'warning', icon: Clock },
+  confirmed: { label: 'Confirmada', badge: 'success', icon: CheckCircle2 },
+  cancelled: { label: 'Cancelada', badge: 'destructive', icon: XCircle },
+  completed: { label: 'Completada', badge: 'secondary', icon: CheckCircle2 },
+  no_show: { label: 'No asistió', badge: 'warning', icon: AlertCircle },
 }
 
 const channelConfig: Record<AppointmentChannel, { label: string; badge: 'whatsapp' | 'voice' | 'dashboard' | 'calcom' }> = {
-  whatsapp:  { label: 'WhatsApp', badge: 'whatsapp' },
-  voice:     { label: 'Voz',      badge: 'voice'     },
-  dashboard: { label: 'Manual',   badge: 'dashboard' },
-  calcom:    { label: 'Cal.com',  badge: 'calcom'   },
+  whatsapp: { label: 'WhatsApp', badge: 'whatsapp' },
+  voice: { label: 'Voz', badge: 'voice' },
+  dashboard: { label: 'Manual', badge: 'dashboard' },
+  calcom: { label: 'Cal.com', badge: 'calcom' },
 }
 
 const activityTypeConfig: Record<string, { icon: React.ElementType; color: string }> = {
-  appointment_booked:    { icon: CalendarCheck, color: 'text-blue-500 bg-blue-100' },
-  appointment_cancelled: { icon: XCircle,       color: 'text-red-500 bg-red-100' },
-  appointment_confirmed: { icon: CheckCircle2,  color: 'text-teal-500 bg-teal-100' },
-  new_patient:           { icon: Users,         color: 'text-violet-500 bg-violet-100' },
-  new_message:           { icon: MessageSquare, color: 'text-amber-500 bg-amber-100' },
-  call_received:         { icon: Phone,         color: 'text-blue-500 bg-blue-100' },
+  appointment_booked: { icon: CalendarCheck, color: 'text-blue-500 bg-blue-100' },
+  appointment_cancelled: { icon: XCircle, color: 'text-red-500 bg-red-100' },
+  appointment_confirmed: { icon: CheckCircle2, color: 'text-teal-500 bg-teal-100' },
+  new_patient: { icon: Users, color: 'text-violet-500 bg-violet-100' },
+  new_message: { icon: MessageSquare, color: 'text-amber-500 bg-amber-100' },
+  call_received: { icon: Phone, color: 'text-blue-500 bg-blue-100' },
 }
 
 function getGreeting(): string {
@@ -94,7 +94,7 @@ export default function DemoPage() {
         <span className="hidden sm:inline">·</span>
         <span className="hidden sm:inline">
           ¿Te interesa? →{' '}
-          <a href="mailto:contacto@smartreceptionist.mx" className="underline underline-offset-2">
+          <a href="mailto:crow9427@gmail.com" className="underline underline-offset-2">
             Solicitar acceso
           </a>
         </span>
@@ -139,10 +139,10 @@ export default function DemoPage() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <StatCard title="Citas hoy"   value={DEMO_STATS.totalTodayAppts} description={`${DEMO_STATS.confirmedToday} confirmadas`} icon={Calendar}      color="blue"   />
-              <StatCard title="Mensajes"    value={DEMO_STATS.unreadMessages}  description="Sin leer"                                   icon={MessageSquare} color="amber"  />
-              <StatCard title="Pacientes"   value={DEMO_STATS.totalPatients}   description="Total registrados"                         icon={Users}         color="violet" />
-              <StatCard title="Pendientes"  value={DEMO_STATS.pendingToday}    description="Por confirmar hoy"                         icon={Clock}         color="amber"  />
+              <StatCard title="Citas hoy" value={DEMO_STATS.totalTodayAppts} description={`${DEMO_STATS.confirmedToday} confirmadas`} icon={Calendar} color="blue" />
+              <StatCard title="Mensajes" value={DEMO_STATS.unreadMessages} description="Sin leer" icon={MessageSquare} color="amber" />
+              <StatCard title="Pacientes" value={DEMO_STATS.totalPatients} description="Total registrados" icon={Users} color="violet" />
+              <StatCard title="Pendientes" value={DEMO_STATS.pendingToday} description="Por confirmar hoy" icon={Clock} color="amber" />
             </div>
 
             {/* Main grid */}
