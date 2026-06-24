@@ -5,7 +5,6 @@ import {
   MessageSquare,
   Users,
   XCircle,
-  AlertCircle,
   Phone,
   CalendarCheck,
   Activity,
@@ -15,6 +14,7 @@ import { EmptyState } from '@/components/dashboard/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { formatTime, formatDate } from '@/lib/utils'
+import { isSameDay } from 'date-fns'
 import {
   DEMO_PROFESSIONAL,
   DEMO_STATS,
@@ -23,67 +23,33 @@ import {
   type DemoAppointment,
   type DemoActivity,
 } from '@/lib/demo-data'
+import {
+  statusConfig,
+  channelConfig,
+  activityTypeConfig,
+  getGreeting,
+  timeAgo,
+  type AppointmentStatus,
+  type AppointmentChannel,
+} from '@/lib/dashboard-config'
 
 export const metadata = {
   title: 'Demo — Smart Receptionist',
   description: 'Demostración interactiva de Smart Receptionist',
 }
 
-type AppointmentStatus = DemoAppointment['status']
-type AppointmentChannel = DemoAppointment['channel']
+const CONTACT_EMAIL =
+  process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'contacto@assistwarrior.com'
 
-const statusConfig: Record<AppointmentStatus, {
-  label: string
-  badge: 'success' | 'info' | 'destructive' | 'secondary' | 'warning'
-  icon: React.ElementType
-}> = {
-  scheduled: { label: 'Pendiente', badge: 'warning', icon: Clock },
-  confirmed: { label: 'Confirmada', badge: 'success', icon: CheckCircle2 },
-  cancelled: { label: 'Cancelada', badge: 'destructive', icon: XCircle },
-  completed: { label: 'Completada', badge: 'secondary', icon: CheckCircle2 },
-  no_show: { label: 'No asistió', badge: 'warning', icon: AlertCircle },
-}
-
-const channelConfig: Record<AppointmentChannel, { label: string; badge: 'whatsapp' | 'voice' | 'dashboard' | 'calcom' }> = {
-  whatsapp: { label: 'WhatsApp', badge: 'whatsapp' },
-  voice: { label: 'Voz', badge: 'voice' },
-  dashboard: { label: 'Manual', badge: 'dashboard' },
-  calcom: { label: 'Cal.com', badge: 'calcom' },
-}
-
-const activityTypeConfig: Record<string, { icon: React.ElementType; color: string }> = {
-  appointment_booked: { icon: CalendarCheck, color: 'text-blue-500 bg-blue-100' },
-  appointment_cancelled: { icon: XCircle, color: 'text-red-500 bg-red-100' },
-  appointment_confirmed: { icon: CheckCircle2, color: 'text-teal-500 bg-teal-100' },
-  new_patient: { icon: Users, color: 'text-violet-500 bg-violet-100' },
-  new_message: { icon: MessageSquare, color: 'text-amber-500 bg-amber-100' },
-  call_received: { icon: Phone, color: 'text-blue-500 bg-blue-100' },
-}
-
-function getGreeting(): string {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Buenos días'
-  if (hour < 18) return 'Buenas tardes'
-  return 'Buenas noches'
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'Ahora mismo'
-  if (minutes < 60) return `Hace ${minutes} min`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `Hace ${hours}h`
-  return `Hace ${Math.floor(hours / 24)}d`
-}
-
-// Only show scheduled/confirmed for "today's agenda"
+// Only show scheduled/confirmed appointments that fall on today's date
+const today = new Date()
 const todayAppointments = DEMO_APPOINTMENTS.filter(
-  a => a.status === 'scheduled' || a.status === 'confirmed'
+  (a) =>
+    (a.status === 'scheduled' || a.status === 'confirmed') &&
+    isSameDay(new Date(a.starts_at), today)
 )
 
 export default function DemoPage() {
-  const today = new Date()
   const firstName = 'Laura'
 
   return (
@@ -94,7 +60,7 @@ export default function DemoPage() {
         <span className="hidden sm:inline">·</span>
         <span className="hidden sm:inline">
           ¿Te interesa? →{' '}
-          <a href="mailto:crow9427@gmail.com" className="underline underline-offset-2">
+          <a href={`mailto:${CONTACT_EMAIL}`} className="underline underline-offset-2">
             Solicitar acceso
           </a>
         </span>
@@ -165,9 +131,9 @@ export default function DemoPage() {
                 ) : (
                   <div className="divide-y divide-slate-50">
                     {todayAppointments.map((apt) => {
-                      const status = statusConfig[apt.status] ?? statusConfig.scheduled
+                      const status = statusConfig[apt.status as AppointmentStatus] ?? statusConfig.scheduled
                       const StatusIcon = status.icon
-                      const channel = channelConfig[apt.channel] ?? channelConfig.dashboard
+                      const channel = channelConfig[apt.channel as AppointmentChannel] ?? channelConfig.dashboard
                       return (
                         <div key={apt.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
                           <div className="w-14 shrink-0 text-center">

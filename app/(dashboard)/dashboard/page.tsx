@@ -6,71 +6,27 @@ import {
   Clock,
   MessageSquare,
   Users,
-  PhoneCall,
-  XCircle,
-  AlertCircle,
-  Phone,
-  Monitor,
-  CalendarCheck,
   Activity,
 } from 'lucide-react'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { EmptyState } from '@/components/dashboard/EmptyState'
 import { Badge } from '@/components/ui/badge'
 import { formatTime, formatDate } from '@/lib/utils'
+import {
+  statusConfig,
+  channelConfig,
+  activityTypeConfig,
+  getGreeting,
+  timeAgo,
+  type AppointmentStatus,
+  type AppointmentChannel,
+} from '@/lib/dashboard-config'
 
 export const metadata = {
   title: 'Dashboard',
 }
 
-type AppointmentStatus = 'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'
-type AppointmentChannel = 'whatsapp' | 'voice' | 'dashboard' | 'calcom'
 
-const statusConfig: Record<AppointmentStatus, {
-  label: string
-  badge: 'success' | 'info' | 'destructive' | 'secondary' | 'warning'
-  icon: React.ElementType
-}> = {
-  scheduled:  { label: 'Pendiente',  badge: 'warning',     icon: Clock },
-  confirmed:  { label: 'Confirmada', badge: 'success',     icon: CheckCircle2 },
-  cancelled:  { label: 'Cancelada',  badge: 'destructive', icon: XCircle },
-  completed:  { label: 'Completada', badge: 'secondary',   icon: CheckCircle2 },
-  no_show:    { label: 'No asistió', badge: 'warning',     icon: AlertCircle },
-}
-
-const channelConfig: Record<AppointmentChannel, { label: string; badge: 'whatsapp' | 'voice' | 'dashboard' | 'calcom' }> = {
-  whatsapp:  { label: 'WhatsApp', badge: 'whatsapp' },
-  voice:     { label: 'Voz',      badge: 'voice'     },
-  dashboard: { label: 'Manual',   badge: 'dashboard' },
-  calcom:    { label: 'Cal.com',  badge: 'calcom'   },
-}
-
-const activityTypeConfig: Record<string, { icon: React.ElementType; color: string }> = {
-  appointment_booked:    { icon: CalendarCheck, color: 'text-blue-500 bg-blue-100' },
-  appointment_cancelled: { icon: XCircle,       color: 'text-red-500 bg-red-100' },
-  appointment_confirmed: { icon: CheckCircle2,  color: 'text-teal-500 bg-teal-100' },
-  new_patient:           { icon: Users,         color: 'text-violet-500 bg-violet-100' },
-  new_message:           { icon: MessageSquare, color: 'text-amber-500 bg-amber-100' },
-  call_received:         { icon: Phone,         color: 'text-blue-500 bg-blue-100' },
-}
-
-function getGreeting(): string {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Buenos días'
-  if (hour < 18) return 'Buenas tardes'
-  return 'Buenas noches'
-}
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return 'Ahora mismo'
-  if (minutes < 60) return `Hace ${minutes} min`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `Hace ${hours}h`
-  const days = Math.floor(hours / 24)
-  return `Hace ${days}d`
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient()

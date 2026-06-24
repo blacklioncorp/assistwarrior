@@ -1,79 +1,33 @@
 'use client'
 
 import Link from 'next/link'
+import { AlertTriangle } from 'lucide-react'
 
 export default function ErrorPage() {
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)',
-      fontFamily: "'Inter', sans-serif",
-      padding: '2rem',
-    }}>
-      <div style={{
-        background: 'rgba(255, 255, 255, 0.05)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        borderRadius: '24px',
-        padding: '3rem',
-        maxWidth: '480px',
-        width: '100%',
-        textAlign: 'center',
-      }}>
-        <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '50%',
-          background: 'rgba(239, 68, 68, 0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 1.5rem',
-          fontSize: '2rem',
-        }}>
-          ⚠️
+    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        {/* Card */}
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-card px-8 py-10 text-center">
+          {/* Icon */}
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 border border-red-100">
+            <AlertTriangle className="h-7 w-7 text-red-500" />
+          </div>
+
+          <h1 className="text-2xl font-bold text-slate-900">Algo salió mal</h1>
+          <p className="mt-3 text-sm text-slate-500 leading-relaxed">
+            Hubo un problema al procesar tu solicitud. Por favor, intenta de nuevo o contacta al soporte si el problema persiste.
+          </p>
+
+          <div className="mt-8">
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#1E4A8A] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#1a3f78] transition-all active:scale-[0.98]"
+            >
+              ← Volver al inicio de sesión
+            </Link>
+          </div>
         </div>
-
-        <h1 style={{
-          color: '#fff',
-          fontSize: '1.5rem',
-          fontWeight: 700,
-          marginBottom: '0.75rem',
-        }}>
-          Algo salió mal
-        </h1>
-
-        <p style={{
-          color: 'rgba(255, 255, 255, 0.6)',
-          fontSize: '0.95rem',
-          lineHeight: 1.6,
-          marginBottom: '2rem',
-        }}>
-          Hubo un problema al procesar tu solicitud. Por favor, intenta de nuevo o contacta al soporte si el problema persiste.
-        </p>
-
-        <Link
-          href="/login"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.75rem 2rem',
-            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-            color: '#fff',
-            borderRadius: '12px',
-            textDecoration: 'none',
-            fontWeight: 600,
-            fontSize: '0.95rem',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 4px 15px rgba(99, 102, 241, 0.3)',
-          }}
-        >
-          ← Volver al inicio de sesión
-        </Link>
       </div>
     </div>
   )

@@ -4,6 +4,9 @@ import { createClient } from '@/lib/utils/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { checkIsSuperadmin } from '@/lib/utils/superadmin'
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
+
+const planSchema = z.enum(['pro', 'basic', 'trial'])
 
 /**
  * Returns global platform stats: doctors count, appointments count, patients count, and plan distribution.
@@ -110,13 +113,17 @@ export async function updateProfessionalPlan(professionalId: string, plan: 'pro'
   const isAdmin = await checkIsSuperadmin()
   if (!isAdmin) return { error: 'No autorizado' }
 
+  // Runtime validation — TypeScript types are stripped at runtime in Server Actions
+  const parsed = planSchema.safeParse(plan)
+  if (!parsed.success) return { error: 'Plan inválido' }
+
   const adminClient = createAdminClient()
   const { data: { user } } = await (await createClient()).auth.getUser()
   if (!user) return { error: 'No autenticado' }
 
   const { error } = await adminClient
     .from('professionals')
-    .update({ plan, plan_status: 'active' })
+    .update({ plan: parsed.data, plan_status: 'active' })
     .eq('id', professionalId)
 
   if (error) return { error: error.message }
@@ -315,9 +322,10 @@ export async function initializeSuperadminEmails() {
       }
     }
     return { success: true }
-  } catch (error: any) {
-    console.error('Initialization error:', error)
-    return { error: error.message }
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('Initialization error:', message)
+    return { error: message }
   }
 }
 

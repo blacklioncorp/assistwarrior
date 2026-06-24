@@ -1,0 +1,873 @@
+[{
+  "name": "WhatsApp - Asistente Virtual Médico",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "node-1",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "whatsapp-trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $input.item.json;\nconst entry = msg.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\n\nreturn {\n  phone: message?.from,\n  message: message?.text?.body,\n  businessPhoneId: value?.metadata?.phone_number_id,\n  messageId: message?.id\n};"
+      },
+      "id": "node-2",
+      "name": "Extraer datos del mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "professionals",
+        "columns": "*",
+        "filters": {
+          "conditions": [
+            {
+              "field": "whatsapp_phone_number_id",
+              "operator": "eq",
+              "value": "={{ $json.businessPhoneId }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "node-3",
+      "name": "Buscar profesional",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "supabaseApi": "Supabase"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.is_active === true && ($json.plan_status === 'active' || $json.plan_status === 'trialing') ? 1 : 0 }}",
+              "operation": "equal",
+              "value2": 1
+            }
+          ]
+        }
+      },
+      "id": "node-3b",
+      "name": "¿Profesional activo con plan válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "Lo sentimos, este servicio no está disponible temporalmente. Por favor contacta directamente al consultorio."
+      },
+      "id": "node-3c",
+      "name": "Servicio no disponible",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [1050, 450],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "patients",
+        "columns": "*",
+        "filters": {
+          "conditions": [
+            {
+              "field": "professional_id",
+              "operator": "eq",
+              "value": "={{ $('Buscar profesional').item.json.id }}"
+            },
+            {
+              "field": "phone_whatsapp",
+              "operator": "eq",
+              "value": "={{ $('Extraer datos del mensaje').item.json.phone }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "node-4",
+      "name": "Buscar paciente",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1050, 300],
+      "credentials": {
+        "supabaseApi": "Supabase"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "node-5",
+      "name": "¿Existe paciente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Extraer datos del mensaje').item.json.message }}",
+        "systemPrompt": "Eres un clasificador de intenciones para un consultorio médico. Devuelve SOLO un JSON válido con esta estructura:\n{\n  \"intent\": \"schedule\" | \"cancel\" | \"reschedule\" | \"confirm\" | \"question\" | \"other\",\n  \"parameters\": {\n    \"date\": \"YYYY-MM-DD o null\",\n    \"time\": \"HH:MM o null\",\n    \"reason\": \"texto o null\"\n  }\n}"
+      },
+      "id": "node-6a",
+      "name": "Clasificar intención",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 2,
+      "position": [1450, 200],
+      "credentials": {
+        "openAiApi": "OpenAI"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.item.json.choices[0].message.content;\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nconst parsed = match ? JSON.parse(match[0]) : { intent: \"other\", parameters: {} };\nreturn parsed;"
+      },
+      "id": "node-7a",
+      "name": "Parsear JSON de OpenAI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 200]
+    },
+    {
+      "parameters": {
+        "dataProperty": "intent",
+        "rules": [
+          { "value": "schedule",   "output": 0 },
+          { "value": "reschedule", "output": 0 },
+          { "value": "cancel",     "output": 1 },
+          { "value": "confirm",    "output": 2 },
+          { "value": "question",   "output": 3 },
+          { "value": "other",      "output": 3 }
+        ]
+      },
+      "id": "node-8a",
+      "name": "Enrutar por intención",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [1850, 200]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Extraer datos del mensaje').item.json.message }}",
+        "systemPrompt": "Eres el asistente virtual del Dr. {{ $('Buscar profesional').item.json.full_name }} ({{ $('Buscar profesional').item.json.specialty }}). Responde la pregunta del paciente de manera amable y profesional."
+      },
+      "id": "node-9a",
+      "name": "Responder pregunta",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 2,
+      "position": [2050, 400],
+      "credentials": {
+        "openAiApi": "OpenAI"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "={{ $json.choices[0].message.content }}"
+      },
+      "id": "node-10a",
+      "name": "Enviar respuesta",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [2250, 400],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "appointments",
+        "columns": "*",
+        "filters": {
+          "conditions": [
+            {
+              "field": "patient_id",
+              "operator": "eq",
+              "value": "={{ $('Buscar paciente').item.json.id }}"
+            },
+            {
+              "field": "status",
+              "operator": "in",
+              "value": ["scheduled", "confirmed"]
+            }
+          ]
+        },
+        "order": { "field": "starts_at", "direction": "asc" },
+        "limit": 1
+      },
+      "id": "node-9b",
+      "name": "Buscar cita activa (confirm)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2050, 550],
+      "credentials": {
+        "supabaseApi": "Supabase"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "={{( $json.length > 0 ) ? `Tiene una cita programada para el ${$json.starts_at}. ¿Confirma su asistencia? (sí/no)` : 'No tiene citas activas.'}}"
+      },
+      "id": "node-10b",
+      "name": "Confirmar asistencia",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [2250, 550],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.APP_URL }}/api/n8n/appointments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.N8N_WEBHOOK_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "appointment_id", "value": "={{ $('Buscar cita activa (confirm)').item.json.id }}" },
+            { "name": "professional_id", "value": "={{ $('Buscar profesional').item.json.id }}" },
+            { "name": "action",          "value": "confirm" }
+          ]
+        }
+      },
+      "id": "node-10c",
+      "name": "Confirmar cita vía API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2450, 550]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Extraer datos del mensaje').item.json.message }}",
+        "systemPrompt": "Eres el asistente virtual del Dr. {{ $('Buscar profesional').item.json.full_name }} ({{ $('Buscar profesional').item.json.specialty }}) del consultorio {{ $('Buscar profesional').item.json.clinic_name }}. El paciente es nuevo. Dale la bienvenida, preséntale los servicios y pregúntale si desea agendar una cita."
+      },
+      "id": "node-6b",
+      "name": "Presentación del consultorio",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 2,
+      "position": [1450, 650],
+      "credentials": {
+        "openAiApi": "OpenAI"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "={{ $json.choices[0].message.content }}"
+      },
+      "id": "node-7b",
+      "name": "Enviar respuesta (nuevo)",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [1650, 650],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const params = $input.item.json.parameters;\nif (!params.date || !params.time) {\n  return { needMoreInfo: true, message: \"¿Qué fecha y hora prefiere? (ejemplo: 15 de junio a las 10 am)\" };\n} else {\n  return { needMoreInfo: false, date: params.date, time: params.time, reason: params.reason };\n}"
+      },
+      "id": "node-s1",
+      "name": "Validar fecha/hora en parámetros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 100]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "={{ $json.message }}"
+      },
+      "id": "node-s2",
+      "name": "Pedir fecha/hora",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [2250, 50],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const workingHours = $('Buscar profesional').item.json.working_hours;\nconst date = new Date($input.item.json.date + 'T' + $input.item.json.time);\nconst day = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();\nconst dayConfig = workingHours[day];\nif (!dayConfig || !dayConfig.enabled) {\n  return { valid: false, message: \"Ese día no atendemos.\" };\n}\nconst time = $input.item.json.time;\nif (time < dayConfig.start || time > dayConfig.end) {\n  return { valid: false, message: `El horario es de ${dayConfig.start} a ${dayConfig.end}.` };\n}\nreturn { valid: true, date: $input.item.json.date, time: $input.item.json.time, reason: $input.item.json.reason };"
+      },
+      "id": "node-s3",
+      "name": "Validar working_hours",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2250, 150]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "={{ $json.message }}"
+      },
+      "id": "node-s4",
+      "name": "Horario no válido",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [2450, 150],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "blocked_slots",
+        "columns": "*",
+        "filters": {
+          "conditions": [
+            {
+              "field": "professional_id",
+              "operator": "eq",
+              "value": "={{ $('Buscar profesional').item.json.id }}"
+            },
+            {
+              "field": "starts_at",
+              "operator": "lte",
+              "value": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}"
+            },
+            {
+              "field": "ends_at",
+              "operator": "gte",
+              "value": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "node-s5",
+      "name": "Verificar blocked_slots",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2450, 200],
+      "credentials": {
+        "supabaseApi": "Supabase"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "node-s6",
+      "name": "¿Hay bloqueo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2650, 200]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "list",
+        "calendarId": "primary",
+        "timeMin": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}",
+        "timeMax": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':30' }}",
+        "maxResults": 1
+      },
+      "id": "node-s7",
+      "name": "Ver disponibilidad GC",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [2850, 200],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calendar"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "node-s8",
+      "name": "¿Hay evento?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [3050, 200]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "Hay disponibilidad para el {{ $input.item.json.date }} a las {{ $input.item.json.time }}. ¿Confirma la cita? (sí/no)"
+      },
+      "id": "node-s9",
+      "name": "Pedir confirmación",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [3250, 200],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "create",
+        "calendarId": "primary",
+        "start": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}",
+        "end": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':30' }}",
+        "summary": "Cita {{ $('Buscar paciente').item.json.full_name }} - {{ $input.item.json.reason }}"
+      },
+      "id": "node-s11",
+      "name": "Crear evento GC",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [3450, 200],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calendar"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL }}/api/n8n/appointments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.N8N_WEBHOOK_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ $('Validar working_hours').item.json.date }}\",\n  \"time\": \"{{ $('Validar working_hours').item.json.time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ $('Validar working_hours').item.json.reason }}\",\n  \"channel\": \"whatsapp\"\n}"
+      },
+      "id": "node-s12",
+      "name": "Agendar cita vía API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3650, 200]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "Su cita ha sido agendada para el {{ $('Validar working_hours').item.json.date }} a las {{ $('Validar working_hours').item.json.time }}. ¡Te esperamos!"
+      },
+      "id": "node-s13",
+      "name": "Confirmación al paciente",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [3850, 200],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL }}/api/notifications/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.N8N_WEBHOOK_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"title\": \"Nueva cita agendada\",\n  \"message\": \"{{ $('Validar working_hours').item.json.date }} a las {{ $('Validar working_hours').item.json.time }} con {{ $('Buscar paciente').item.json.full_name }}\",\n  \"url\": \"/dashboard/appointments\"\n}"
+      },
+      "id": "node-s14",
+      "name": "Notificación push al médico",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [4050, 200]
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": "appointments",
+        "columns": "*",
+        "filters": {
+          "conditions": [
+            {
+              "field": "patient_id",
+              "operator": "eq",
+              "value": "={{ $('Buscar paciente').item.json.id }}"
+            },
+            {
+              "field": "status",
+              "operator": "in",
+              "value": ["scheduled", "confirmed"]
+            }
+          ]
+        },
+        "order": { "field": "starts_at", "direction": "asc" },
+        "limit": 1
+      },
+      "id": "node-c1",
+      "name": "Buscar cita activa (cancelar)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2050, 750],
+      "credentials": {
+        "supabaseApi": "Supabase"
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "node-c2",
+      "name": "¿Tiene cita activa?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2250, 750]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "Tiene una cita el {{ $json.starts_at }}. ¿Desea cancelarla? (sí/no)"
+      },
+      "id": "node-c3",
+      "name": "Mostrar cita y pedir confirmación",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [2450, 750],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.APP_URL }}/api/n8n/appointments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.N8N_WEBHOOK_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"appointment_id\": \"{{ $('Buscar cita activa (cancelar)').item.json.id }}\",\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"action\": \"cancel\"\n}"
+      },
+      "id": "node-c5",
+      "name": "Cancelar cita vía API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2650, 750]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "delete",
+        "calendarId": "primary",
+        "eventId": "={{ $('Buscar cita activa (cancelar)').item.json.google_calendar_event_id }}"
+      },
+      "id": "node-c6",
+      "name": "Eliminar evento GC",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [2850, 750],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calendar"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "¿Desea reagendar su cita para otra fecha? (sí/no)"
+      },
+      "id": "node-c7",
+      "name": "Preguntar si desea reagendar",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [3050, 750],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "Para mejorar nuestro servicio, ¿podría indicarnos el motivo de la cancelación? (Enfermedad, Cambio de planes, Otro)"
+      },
+      "id": "node-c9",
+      "name": "Encuesta de cancelación",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [3250, 750],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $('Extraer datos del mensaje').item.json.businessPhoneId }}",
+        "to": "={{ $('Extraer datos del mensaje').item.json.phone }}",
+        "text": "En una escala del 1 al 5, ¿qué tan satisfecho está con nuestro servicio?"
+      },
+      "id": "node-c10",
+      "name": "Encuesta de satisfacción",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 2,
+      "position": [3450, 750],
+      "credentials": {
+        "whatsAppApi": "WhatsApp"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "surveys",
+        "columns": "professional_id, patient_id, appointment_id, reason, satisfaction",
+        "values": "={{ $('Buscar profesional').item.json.id }}, {{ $('Buscar paciente').item.json.id }}, {{ $('Buscar cita activa (cancelar)').item.json.id }}, {{ $json.reason }}, {{ $json.satisfaction }}"
+      },
+      "id": "node-c11",
+      "name": "Guardar encuesta",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [3650, 750],
+      "credentials": {
+        "supabaseApi": "Supabase"
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [[ { "node": "Extraer datos del mensaje", "type": "main", "index": 0 } ]]
+    },
+    "Extraer datos del mensaje": {
+      "main": [[ { "node": "Buscar profesional", "type": "main", "index": 0 } ]]
+    },
+    "Buscar profesional": {
+      "main": [[ { "node": "¿Profesional activo con plan válido?", "type": "main", "index": 0 } ]]
+    },
+    "¿Profesional activo con plan válido?": {
+      "main": [
+        [{ "node": "Buscar paciente", "type": "main", "index": 0 }],
+        [{ "node": "Servicio no disponible", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar paciente": {
+      "main": [[ { "node": "¿Existe paciente?", "type": "main", "index": 0 } ]]
+    },
+    "¿Existe paciente?": {
+      "main": [
+        [{ "node": "Clasificar intención", "type": "main", "index": 0 }],
+        [{ "node": "Presentación del consultorio", "type": "main", "index": 0 }]
+      ]
+    },
+    "Clasificar intención": {
+      "main": [[ { "node": "Parsear JSON de OpenAI", "type": "main", "index": 0 } ]]
+    },
+    "Parsear JSON de OpenAI": {
+      "main": [[ { "node": "Enrutar por intención", "type": "main", "index": 0 } ]]
+    },
+    "Enrutar por intención": {
+      "main": [
+        [{ "node": "Validar fecha/hora en parámetros", "type": "main", "index": 0 }],
+        [{ "node": "Buscar cita activa (cancelar)",    "type": "main", "index": 0 }],
+        [{ "node": "Buscar cita activa (confirm)",     "type": "main", "index": 0 }],
+        [{ "node": "Responder pregunta",               "type": "main", "index": 0 }]
+      ]
+    },
+    "Responder pregunta": {
+      "main": [[ { "node": "Enviar respuesta", "type": "main", "index": 0 } ]]
+    },
+    "Buscar cita activa (confirm)": {
+      "main": [[ { "node": "Confirmar asistencia", "type": "main", "index": 0 } ]]
+    },
+    "Confirmar asistencia": {
+      "main": [[ { "node": "Confirmar cita vía API", "type": "main", "index": 0 } ]]
+    },
+    "Presentación del consultorio": {
+      "main": [[ { "node": "Enviar respuesta (nuevo)", "type": "main", "index": 0 } ]]
+    },
+    "Validar fecha/hora en parámetros": {
+      "main": [
+        [{ "node": "Pedir fecha/hora",      "type": "main", "index": 0 }],
+        [{ "node": "Validar working_hours", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validar working_hours": {
+      "main": [
+        [{ "node": "Horario no válido",       "type": "main", "index": 0 }],
+        [{ "node": "Verificar blocked_slots", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verificar blocked_slots": {
+      "main": [[ { "node": "¿Hay bloqueo?", "type": "main", "index": 0 } ]]
+    },
+    "¿Hay bloqueo?": {
+      "main": [
+        [{ "node": "Ver disponibilidad GC", "type": "main", "index": 0 }],
+        [{ "node": "Pedir fecha/hora",      "type": "main", "index": 0 }]
+      ]
+    },
+    "Ver disponibilidad GC": {
+      "main": [[ { "node": "¿Hay evento?", "type": "main", "index": 0 } ]]
+    },
+    "¿Hay evento?": {
+      "main": [
+        [{ "node": "Pedir fecha/hora",    "type": "main", "index": 0 }],
+        [{ "node": "Pedir confirmación",  "type": "main", "index": 0 }]
+      ]
+    },
+    "Pedir confirmación": {
+      "main": [[ { "node": "Crear evento GC", "type": "main", "index": 0 } ]]
+    },
+    "Crear evento GC": {
+      "main": [[ { "node": "Agendar cita vía API", "type": "main", "index": 0 } ]]
+    },
+    "Agendar cita vía API": {
+      "main": [
+        [{ "node": "Confirmación al paciente",   "type": "main", "index": 0 }],
+        [{ "node": "Notificación push al médico", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar cita activa (cancelar)": {
+      "main": [[ { "node": "¿Tiene cita activa?", "type": "main", "index": 0 } ]]
+    },
+    "¿Tiene cita activa?": {
+      "main": [
+        [{ "node": "Mostrar cita y pedir confirmación", "type": "main", "index": 0 }],
+        [{ "node": "Enviar respuesta",                  "type": "main", "index": 0 }]
+      ]
+    },
+    "Mostrar cita y pedir confirmación": {
+      "main": [[ { "node": "Cancelar cita vía API", "type": "main", "index": 0 } ]]
+    },
+    "Cancelar cita vía API": {
+      "main": [
+        [{ "node": "Eliminar evento GC",         "type": "main", "index": 0 }],
+        [{ "node": "Preguntar si desea reagendar", "type": "main", "index": 0 }]
+      ]
+    },
+    "Preguntar si desea reagendar": {
+      "main": [
+        [{ "node": "Validar fecha/hora en parámetros", "type": "main", "index": 0 }],
+        [{ "node": "Encuesta de cancelación",          "type": "main", "index": 0 }]
+      ]
+    },
+    "Encuesta de cancelación": {
+      "main": [[ { "node": "Encuesta de satisfacción", "type": "main", "index": 0 } ]]
+    },
+    "Encuesta de satisfacción": {
+      "main": [[ { "node": "Guardar encuesta", "type": "main", "index": 0 } ]]
+    }
+  }
+}]

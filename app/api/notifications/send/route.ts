@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
+import { verifyN8nSecret } from '@/lib/utils/verify-n8n-secret'
 
 // Configure web-push with defensive checks for build time
 try {
@@ -24,13 +25,12 @@ function getSupabaseAdmin() {
   )
 }
 
+
+
 export async function POST(req: Request) {
   try {
     // 1. Authenticate the request from n8n using N8N_WEBHOOK_SECRET
-    const authHeader = req.headers.get('authorization')
-    const secret = process.env.N8N_WEBHOOK_SECRET
-
-    if (!secret || authHeader !== `Bearer ${secret}`) {
+    if (!verifyN8nSecret(req.headers.get('authorization'))) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -79,10 +79,13 @@ export async function POST(req: Request) {
       })
     )
 
-    // Optional: cleanup expired subscriptions if web-push throws 410 Gone
+    // Cleanup expired subscriptions on 410 Gone or 404 Not Found
     for (let i = 0; i < results.length; i++) {
       const res = results[i]
-      if (res.status === 'rejected' && res.reason?.statusCode === 410) {
+      if (
+        res.status === 'rejected' &&
+        (res.reason?.statusCode === 410 || res.reason?.statusCode === 404)
+      ) {
         await supabaseAdmin
           .from('push_subscriptions')
           .delete()
@@ -97,8 +100,8 @@ export async function POST(req: Request) {
       sent: successful, 
       total: subscriptions.length 
     })
-  } catch (err: any) {
-    console.error('Push notification error:', err)
+  } catch (err: unknown) {
+    console.error('Push notification error:', err instanceof Error ? err.message : String(err))
     return NextResponse.json(
       { error: 'Failed to send notification' },
       { status: 500 }
