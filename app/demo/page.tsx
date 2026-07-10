@@ -34,8 +34,8 @@ import {
 } from '@/lib/dashboard-config'
 
 export const metadata = {
-  title: 'Demo — Smart Receptionist',
-  description: 'Demostración interactiva de Smart Receptionist',
+  title: 'Demo — Senzio',
+  description: 'Demostración interactiva de Senzio',
 }
 
 const CONTACT_EMAIL =

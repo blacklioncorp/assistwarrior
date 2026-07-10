@@ -9,13 +9,34 @@ import {
   Users,
   Settings,
   CreditCard,
-  Stethoscope,
   ChevronRight,
   Sparkles,
   ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/utils'
+
+// Reusable Custom Senzio Logo SVG
+function SenzioLogo({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="side-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#8B5CF6" />
+          <stop offset="100%" stop-color="#06B6D4" />
+        </linearGradient>
+      </defs>
+      <path 
+        d="M35,25 C45,15 65,15 75,30 C85,45 65,55 50,50 C35,45 15,55 25,70 C35,85 55,85 65,75" 
+        stroke="url(#side-logo-grad)" 
+        strokeWidth="12" 
+        strokeLinecap="round" 
+      />
+      <circle cx="35" cy="25" r="8" fill="#8B5CF6" />
+      <circle cx="65" cy="75" r="8" fill="#06B6D4" />
+    </svg>
+  )
+}
 
 const navItems = [
   {
@@ -38,7 +59,7 @@ const navItems = [
   },
   {
     href: '/dashboard/patients',
-    label: 'Pacientes',
+    label: 'Clientes',
     icon: Users,
     exact: false,
   },
@@ -71,7 +92,6 @@ interface SidebarProps {
   }
 }
 
-
 function NavLink({
   item,
   pathname,
@@ -91,22 +111,22 @@ function NavLink({
       className={cn(
         'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
         isActive
-          ? 'border-l-2 border-blue-400 bg-slate-800 text-white pl-[10px]'
-          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+          ? 'border-l-2 border-purple-500 bg-slate-900 text-white pl-[10px]'
+          : 'text-slate-400 hover:bg-slate-900/50 hover:text-slate-200'
       )}
     >
       <Icon
         className={cn(
           'h-5 w-5 shrink-0 transition-colors',
           isActive
-            ? 'text-blue-400'
+            ? 'text-purple-400'
             : 'text-slate-500 group-hover:text-slate-300'
         )}
         strokeWidth={isActive ? 2.5 : 1.75}
       />
       <span className="flex-1">{item.label}</span>
       {isActive && (
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" />
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400" />
       )}
     </Link>
   )
@@ -120,22 +140,22 @@ export function Sidebar({ professional }: SidebarProps) {
 
   return (
     <aside
-      className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:w-64 lg:flex-col"
-      style={{ backgroundColor: 'hsl(222 47% 7%)' }}
+      className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:w-64 lg:flex-col border-r border-slate-900/60"
+      style={{ backgroundColor: '#07070C' }}
       role="navigation"
       aria-label="Menú lateral"
     >
       {/* ── Logo ── */}
-      <div className="flex h-16 items-center gap-3 border-b border-slate-800 px-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1E4A8A] shadow-lg shadow-blue-900/40">
-          <Stethoscope className="h-5 w-5 text-white" strokeWidth={2} />
+      <div className="flex h-16 items-center gap-3 border-b border-slate-900/60 px-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/10 to-cyan-500/10 border border-purple-500/20 shadow-lg shadow-purple-950/20">
+          <SenzioLogo className="h-5 w-5" />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-white leading-tight">
-            Smart Receptionist
+            Senzio
           </p>
           <p className="truncate text-[10px] font-medium text-slate-400 tracking-wide uppercase mt-0.5">
-            {professional.specialty ?? professional.clinic_name ?? 'Plataforma médica'}
+            {professional.specialty ?? professional.clinic_name ?? 'Agente de IA'}
           </p>
         </div>
       </div>
@@ -159,9 +179,8 @@ export function Sidebar({ professional }: SidebarProps) {
           )}
         </div>
 
-
         {/* ── Divider ── */}
-        <div className="my-4 border-t border-slate-800" />
+        <div className="my-4 border-t border-slate-900/60" />
 
         <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
           Cuenta
@@ -178,10 +197,10 @@ export function Sidebar({ professional }: SidebarProps) {
         <div className="px-3 pb-3">
           <Link
             href="/dashboard/billing"
-            className="group flex items-center gap-3 rounded-xl border border-blue-900/50 bg-gradient-to-r from-blue-900/40 to-slate-800/40 p-3 transition-all duration-200 hover:border-blue-700/50 hover:from-blue-900/60"
+            className="group flex items-center gap-3 rounded-xl border border-purple-950/40 bg-gradient-to-r from-purple-950/20 to-slate-900/20 p-3 transition-all duration-200 hover:border-purple-800/40 hover:from-purple-950/30"
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600/20">
-              <Sparkles className="h-4 w-4 text-blue-400" />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/10">
+              <Sparkles className="h-4 w-4 text-purple-400" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-white">Actualizar a Pro</p>
@@ -195,9 +214,9 @@ export function Sidebar({ professional }: SidebarProps) {
       )}
 
       {/* ── Professional profile ── */}
-      <div className="border-t border-slate-800 p-3">
+      <div className="border-t border-slate-900/60 p-3">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1E4A8A] text-xs font-bold text-white ring-2 ring-blue-900">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-600 to-cyan-500 text-xs font-bold text-white ring-2 ring-purple-900/30">
             {initials}
           </div>
           <div className="min-w-0 flex-1">
@@ -212,8 +231,8 @@ export function Sidebar({ professional }: SidebarProps) {
             className={cn(
               'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider',
               isPro
-                ? 'bg-blue-600/30 text-blue-300'
-                : 'bg-slate-700 text-slate-400'
+                ? 'bg-cyan-500/20 text-cyan-300'
+                : 'bg-slate-800 text-slate-400'
             )}
           >
             {professional.plan ?? 'basic'}

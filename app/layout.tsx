@@ -7,10 +7,10 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | Smart Receptionist",
-    default: "Smart Receptionist",
+    template: "%s | Senzio",
+    default: "Senzio",
   },
-  description: "AI-powered receptionist for healthcare professionals."
+  description: "soluciones digitales inteligentes",
 };
 
 export default function RootLayout({
@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-white text-slate-900 antialiased`} suppressHydrationWarning>
+      <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased`} suppressHydrationWarning>
         {children}
         <Script id="sw-registration" strategy="afterInteractive">
           {`

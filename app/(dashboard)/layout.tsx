@@ -45,7 +45,7 @@ export default async function DashboardLayout({
 
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
       <Sidebar professional={prof} />
 

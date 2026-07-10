@@ -1,0 +1,133 @@
+{
+  "name": "05 - No Califica",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "sw05-trigger",
+      "name": "When Called by Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-1200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE leads\nSET estado = 'no_califica',\n    califica = FALSE,\n    ultimo_mensaje_en = NOW()\nWHERE id = '{{ $json.lead_id }}';",
+        "options": {}
+      },
+      "id": "sw05-update-lead",
+      "name": "Marcar Lead No Califica",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-976, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"Hola {{ $json.client_name }}, gracias por comunicarte con {{ $json.nombre_despacho || $json.abogado_nombre }}.\\n\\nDespués de analizar tu situación, en este momento nuestros servicios no se ajustan completamente a lo que necesitas. Sin embargo, te recomendamos buscar asesoría legal especializada en tu área específica.\\n\\nSi en el futuro tienes una consulta relacionada con nuestras áreas de práctica, con gusto te atendemos. ¡Mucho éxito! ⚖️\" }\n}",
+        "options": {}
+      },
+      "id": "sw05-send-no-califica",
+      "name": "Enviar Mensaje No Califica",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-752, 200],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determinar si ofrecer contacto manual como escape\nconst ctx = $input.first().json;\nconst mensaje = ctx.message_text || '';\n\n// Si el lead insiste o pregunta por hablar con alguien\nconst quiereHablar = /hablar|humano|persona|asesor|ayuda|manual|real|alguien/i.test(mensaje);\n\nreturn [{ json: { ...ctx, quiere_hablar_humano: quiereHablar } }];"
+      },
+      "id": "sw05-check-manual",
+      "name": "¿Quiere Hablar con Humano?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-752, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict", "version": 1 },
+          "conditions": [
+            {
+              "id": "cond-quiere-humano",
+              "leftValue": "={{ $json.quiere_hablar_humano }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "sw05-if-manual",
+      "name": "¿Quiere Humano?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-528, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE leads\nSET estado = 'manual',\n    ultimo_mensaje_en = NOW()\nWHERE id = '{{ $json.lead_id }}';",
+        "options": {}
+      },
+      "id": "sw05-set-manual",
+      "name": "Marcar Lead → Manual",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-304, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"Por supuesto. Voy a notificar a uno de nuestros asesores para que te contacte personalmente. Por favor, estate al pendiente de esta línea. ¡Pronto te atenderán! 📞\" }\n}",
+        "options": {}
+      },
+      "id": "sw05-send-manual",
+      "name": "Enviar Mensaje → Asesor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-80, 300],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    }
+  ],
+  "connections": {
+    "When Called by Router": {
+      "main": [[{ "node": "Marcar Lead No Califica", "type": "main", "index": 0 }]]
+    },
+    "Marcar Lead No Califica": {
+      "main": [
+        [{ "node": "Enviar Mensaje No Califica", "type": "main", "index": 0 }],
+        [{ "node": "¿Quiere Hablar con Humano?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Quiere Hablar con Humano?": {
+      "main": [[{ "node": "¿Quiere Humano?", "type": "main", "index": 0 }]]
+    },
+    "¿Quiere Humano?": {
+      "main": [
+        [{ "node": "Marcar Lead → Manual", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Marcar Lead → Manual": {
+      "main": [[{ "node": "Enviar Mensaje → Asesor", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

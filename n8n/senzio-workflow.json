@@ -1,0 +1,318 @@
+{
+  "name": "Senzio - Multi-Vertical Agent (HTTP Mode)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-1",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body;\nconst entry = body.entry[0];\nconst change = entry.changes[0];\nconst value = change.value;\nconst message = value.messages?.[0];\nconst metadata = value.metadata;\n\nreturn {\n  phone: message?.from,\n  message: message?.text?.body,\n  businessPhoneId: metadata?.phone_number_id,\n  displayPhoneNumber: metadata?.display_phone_number\n};"
+      },
+      "id": "node-2",
+      "name": "Extract WhatsApp Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableId": "professionals",
+        "returnAll": true,
+        "select": "*, business_types(config, name)",
+        "matchType": "any",
+        "match": {
+          "matchValues": [
+            {
+              "keyName": "whatsapp_phone_number_id",
+              "keyValue": "={{ $('Extract WhatsApp Data').item.json.businessPhoneId }}"
+            }
+          ]
+        }
+      },
+      "id": "node-3",
+      "name": "Get Professional Config",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "supabaseApi": "Supabase account"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres un asistente virtual para un negocio de tipo {{ $('Get Professional Config').item.json.business_types.name }}. El negocio te ha configurado así: {{ $('Get Professional Config').item.json.business_config }}. Debes recopilar los datos para crear un/a {{ $('Get Professional Config').item.json.business_types.config.appointment_label }}. Los campos personalizados que debes preguntar son: {{ $('Get Professional Config').item.json.business_types.config.custom_fields }}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $('Extract WhatsApp Data').item.json.message }}\"\n    }\n  ],\n  \"tools\": [\n    {\n      \"type\": \"function\",\n      \"function\": {\n        \"name\": \"Create_Booking\",\n        \"description\": \"Crea una reserva o pedido con la información del cliente.\",\n        \"parameters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"client_name\": { \"type\": \"string\" },\n            \"date_time\": { \"type\": \"string\", \"description\": \"Fecha y hora en formato ISO\" },\n            \"custom_data\": { \"type\": \"string\", \"description\": \"Información adicional basada en los custom_fields requeridos por el negocio\" }\n          },\n          \"required\": [\"client_name\", \"date_time\"]\n        }\n      }\n    }\n  ]\n}"
+      },
+      "id": "node-4",
+      "name": "OpenAI Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [850, 300],
+      "credentials": {
+        "httpHeaderAuth": "OpenAI Header Auth"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = $('OpenAI Agent').item.json;\nconst message = agentOutput.choices?.[0]?.message;\nconst toolCalls = message?.tool_calls;\n\nif (toolCalls && toolCalls.length > 0) {\n  try {\n    const args = JSON.parse(toolCalls[0].function.arguments);\n    return {\n      client_name: args.client_name,\n      date_time: args.date_time,\n      custom_data: args.custom_data,\n      has_function: true,\n      reply_text: message.content\n    };\n  } catch (e) {\n    return { has_function: false, reply_text: message.content };\n  }\n}\nreturn { has_function: false, reply_text: message.content };"
+      },
+      "id": "node-9",
+      "name": "Extract Arguments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $('Get Professional Config').item.json.business_types.config.requires_google_calendar }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-5",
+      "name": "Requires Calendar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "calendar": "primary",
+        "start": "={{ $('Extract Arguments').item.json.date_time }}",
+        "end": "={{ $('Extract Arguments').item.json.date_time }}",
+        "summary": "={{ $('Get Professional Config').item.json.business_types.config.appointment_label }} - {{ $('Extract Arguments').item.json.client_name }}",
+        "description": "={{ $('Extract Arguments').item.json.custom_data }}"
+      },
+      "id": "node-6",
+      "name": "Google Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [1450, 200],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calendar account"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "create",
+        "tableId": "appointments",
+        "dataMode": "json",
+        "json": "={\n  \"professional_id\": \"{{ $('Get Professional Config').item.json.id }}\",\n  \"patient_name\": \"{{ $('Extract Arguments').item.json.client_name }}\",\n  \"start_time\": \"{{ $('Extract Arguments').item.json.date_time }}\",\n  \"notes\": \"{{ $('Extract Arguments').item.json.custom_data }}\"\n}"
+      },
+      "id": "node-7",
+      "name": "Save to Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1650, 300],
+      "credentials": {
+        "supabaseApi": "Supabase account"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Get Professional Config').item.json.whatsapp_phone_number_id + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extract WhatsApp Data').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $('Extract Arguments').item.json.reply_text || 'Procesando tu solicitud...' }}\"\n  }\n}"
+      },
+      "id": "node-8",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1850, 300],
+      "credentials": {
+        "httpHeaderAuth": "WhatsApp Header Auth"
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "whatsapp-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-get-webhook",
+      "name": "WhatsApp Webhook (Verification)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.query['hub.verify_token'] }}",
+              "operation": "equal",
+              "value2": "senzio_token"
+            }
+          ]
+        }
+      },
+      "id": "node-verify-token",
+      "name": "Is Token Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-challenge",
+      "name": "Respond with Challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 50]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Forbidden: Verification token mismatch",
+        "options": {
+          "responseCode": 403,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-forbidden",
+      "name": "Respond with Forbidden",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 150]
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook": {
+      "main": [
+        [
+          { "node": "Extract WhatsApp Data", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Extract WhatsApp Data": {
+      "main": [
+        [
+          { "node": "Get Professional Config", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Professional Config": {
+      "main": [
+        [
+          { "node": "OpenAI Agent", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "OpenAI Agent": {
+      "main": [
+        [
+          { "node": "Extract Arguments", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Extract Arguments": {
+      "main": [
+        [
+          { "node": "Requires Calendar?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Requires Calendar?": {
+      "main": [
+        [
+          { "node": "Google Calendar", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Save to Supabase", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Google Calendar": {
+      "main": [
+        [
+          { "node": "Save to Supabase", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Save to Supabase": {
+      "main": [
+        [
+          { "node": "Send WhatsApp Reply", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "WhatsApp Webhook (Verification)": {
+      "main": [
+        [
+          {
+            "node": "Is Token Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Token Valid?": {
+      "main": [
+        [
+          {
+            "node": "Respond with Challenge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond with Forbidden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

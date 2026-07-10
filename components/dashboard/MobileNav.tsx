@@ -15,7 +15,7 @@ const tabs = [
   { href: '/dashboard', label: 'Inicio', icon: LayoutDashboard },
   { href: '/dashboard/appointments', label: 'Citas', icon: Calendar },
   { href: '/dashboard/messages', label: 'Mensajes', icon: MessageSquare },
-  { href: '/dashboard/patients', label: 'Pacientes', icon: Users },
+  { href: '/dashboard/patients', label: 'Clientes', icon: Users },
   { href: '/dashboard/settings', label: 'Ajustes', icon: Settings },
 ]
 
@@ -24,7 +24,7 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 lg:hidden bg-white border-t border-slate-200"
+      className="fixed bottom-0 inset-x-0 z-50 lg:hidden bg-[#07070C]/90 backdrop-blur-md border-t border-slate-900/60"
       role="navigation"
       aria-label="Navegación principal"
     >
@@ -44,8 +44,8 @@ export function MobileNav() {
               className={cn(
                 'flex flex-col items-center justify-center gap-1 px-3 py-2.5 min-w-[56px] transition-colors duration-150',
                 isActive
-                  ? 'text-[#1E4A8A]'
-                  : 'text-slate-400 hover:text-slate-600'
+                  ? 'text-purple-400'
+                  : 'text-slate-500 hover:text-slate-300'
               )}
             >
               <Icon
@@ -58,7 +58,7 @@ export function MobileNav() {
               <span
                 className={cn(
                   'text-[10px] font-medium leading-none',
-                  isActive ? 'text-[#1E4A8A]' : 'text-slate-400'
+                  isActive ? 'text-purple-400' : 'text-slate-500'
                 )}
               >
                 {tab.label}

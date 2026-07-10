@@ -1,0 +1,54 @@
+{
+  "name": "08 - Espera Atención Manual",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "sw08-trigger",
+      "name": "When Called by Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-800, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"Hola {{ $json.client_name }}, tu caso ha sido registrado y un asesor de {{ $json.nombre_despacho || $json.abogado_nombre }} se pondrá en contacto contigo a la brevedad posible. \\n\\n⏳ Por favor ten paciencia. ¡Estamos trabajando en tu caso!\" }\n}",
+        "options": {}
+      },
+      "id": "sw08-send-wait",
+      "name": "Enviar Mensaje Espera",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-576, 300],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE leads\nSET ultimo_mensaje_en = NOW()\nWHERE id = '{{ $json.lead_id }}';",
+        "options": {}
+      },
+      "id": "sw08-update-timestamp",
+      "name": "Actualizar Timestamp Lead",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-352, 300]
+    }
+  ],
+  "connections": {
+    "When Called by Router": {
+      "main": [[{ "node": "Enviar Mensaje Espera", "type": "main", "index": 0 }]]
+    },
+    "Enviar Mensaje Espera": {
+      "main": [[{ "node": "Actualizar Timestamp Lead", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

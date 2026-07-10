@@ -4,84 +4,83 @@
 
 @layer base {
   :root {
-    /* ── Medical Trust Color System ── */
-    --background: 210 40% 98%;          /* #F8FAFC */
-    --foreground: 222 47% 7%;           /* #0F172A */
+    /* ── Senzio Dark Mode Base ── */
+    --background: 240 30% 3%;            /* #05050A */
+    --foreground: 210 40% 98%;           /* #F8FAFC */
 
-    --card: 0 0% 100%;                  /* #FFFFFF */
-    --card-foreground: 222 47% 7%;
+    --card: 240 25% 7%;                  /* #0F0F1A */
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 7%;
+    --popover: 240 25% 7%;
+    --popover-foreground: 210 40% 98%;
 
-    /* Primary — Trust Blue #1E4A8A */
-    --primary: 215 63% 33%;
+    /* Primary — Purple #8B5CF6 */
+    --primary: 263 90% 66%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary — Calm Teal #0D9488 */
-    --secondary: 173 81% 32%;
+    /* Secondary — Cyan #06B6D4 */
+    --secondary: 189 94% 43%;
     --secondary-foreground: 0 0% 100%;
 
-    /* Muted */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 20% 46%;    /* #64748B */
+    /* Muted — #181829 */
+    --muted: 240 18% 13%;
+    --muted-foreground: 215 20% 65%;
 
-    /* Accent — soft blue hover */
-    --accent: 214 100% 97%;
-    --accent-foreground: 215 63% 33%;
+    /* Accent — soft hover */
+    --accent: 240 18% 13%;
+    --accent-foreground: 210 40% 98%;
 
-    /* Destructive — #DC2626 */
+    /* Destructive */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Amber — Warning #D97706 */
+    /* Amber / Warning */
     --warning: 38 92% 44%;
     --warning-foreground: 0 0% 100%;
 
     /* Borders & Inputs */
-    --border: 214 32% 91%;              /* #E2E8F0 */
-    --input: 214 32% 91%;
-    --ring: 215 63% 33%;
+    --border: 240 18% 13%;
+    --input: 240 18% 13%;
+    --ring: 263 90% 66%;
 
     /* Border radius */
-    --radius: 0.75rem;                  /* rounded-xl base */
+    --radius: 0.75rem;
 
     /* Sidebar (dark) */
-    --sidebar-bg: 222 47% 7%;           /* #0F172A */
-    --sidebar-border: 217 33% 17%;      /* #1E293B */
-    --sidebar-text: 215 20% 65%;        /* #94A3B8 */
+    --sidebar-bg: 240 25% 5%;            /* #0A0A0F */
+    --sidebar-border: 240 18% 10%;
+    --sidebar-text: 215 20% 65%;
     --sidebar-text-active: 0 0% 100%;
-    --sidebar-hover: 217 33% 12%;
-    --sidebar-active: 217 33% 15%;
+    --sidebar-hover: 240 18% 13%;
+    --sidebar-active: 240 25% 7%;
 
-    /* Chart / status colors */
-    --status-scheduled: 215 63% 33%;
-    --status-confirmed: 173 81% 32%;
+    /* Status colors */
+    --status-scheduled: 263 90% 66%;     /* Purple */
+    --status-confirmed: 189 94% 43%;     /* Cyan */
     --status-cancelled: 0 72% 51%;
     --status-completed: 215 20% 46%;
     --status-no-show: 38 92% 44%;
   }
 
-  .dark {
-    --background: 222 47% 7%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 80% 60%;
-    --primary-foreground: 222 47% 7%;
-    --secondary: 173 60% 45%;
+  .light {
+    /* Fallback/light mode variables if needed, but we default to dark */
+    --background: 216 33% 97%;
+    --foreground: 215 28% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 17%;
+    --primary: 263 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 189 94% 43%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 210 80% 60%;
+    --muted: 216 20% 95%;
+    --muted-foreground: 215 20% 46%;
+    --accent: 211 100% 97%;
+    --accent-foreground: 263 90% 66%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 263 90% 66%;
   }
 }
 

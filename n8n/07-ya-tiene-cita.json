@@ -1,0 +1,67 @@
+{
+  "name": "07 - Ya Tiene Cita",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "sw07-trigger",
+      "name": "When Called by Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-800, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT fecha, hora_inicio, estado\nFROM citas\nWHERE lead_id = '{{ $json.lead_id }}'\n  AND estado NOT IN ('cancelada')\n  AND fecha >= CURRENT_DATE\nORDER BY fecha ASC\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "sw07-get-cita",
+      "name": "Obtener Cita Existente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-576, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('When Called by Router').item.json;\nconst cita = $input.first().json;\n\nlet msgCita = '';\nif (cita?.fecha) {\n  const fechaObj = new Date(cita.fecha + 'T12:00:00');\n  const opciones = { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' };\n  const fechaLegible = fechaObj.toLocaleDateString('es-ES', opciones);\n  msgCita = `📅 Tu cita está agendada para el *${fechaLegible}* a las *${cita.hora_inicio} hrs*.`;\n} else {\n  msgCita = '📅 Tienes una cita agendada próximamente.';\n}\n\nconst msgFinal = `Hola ${ctx.client_name}, ¡ya tienes una cita con nosotros! 🎉\\n\\n${msgCita}\\n\\nSi necesitas cambiar o cancelar tu cita, escríbenos con anticipación. ¡Te esperamos! ⚖️`;\n\nreturn [{ json: { ...ctx, mensaje_ya_cita: msgFinal } }];"
+      },
+      "id": "sw07-build-msg",
+      "name": "Armar Mensaje Cita Existente",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-352, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"{{ $json.mensaje_ya_cita }}\" }\n}",
+        "options": {}
+      },
+      "id": "sw07-send-msg",
+      "name": "Enviar Recordatorio Cita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-128, 300],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    }
+  ],
+  "connections": {
+    "When Called by Router": {
+      "main": [[{ "node": "Obtener Cita Existente", "type": "main", "index": 0 }]]
+    },
+    "Obtener Cita Existente": {
+      "main": [[{ "node": "Armar Mensaje Cita Existente", "type": "main", "index": 0 }]]
+    },
+    "Armar Mensaje Cita Existente": {
+      "main": [[{ "node": "Enviar Recordatorio Cita", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

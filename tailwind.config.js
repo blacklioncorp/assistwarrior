@@ -54,20 +54,25 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Medical Trust brand tokens
-        medical: {
+        // Senzio brand tokens
+        senzio: {
+          purple: "#8B5CF6",
+          cyan: "#06B6D4",
+          dark: "#05050A",
+          surface: "#0F0F1A",
+          "surface-hover": "#181829",
           blue: {
-            DEFAULT: "#1E4A8A",
-            50:  "#EEF4FF",
-            100: "#D9E8FF",
-            200: "#B9D3FF",
-            300: "#87B4FC",
-            400: "#608BF8",
-            500: "#3B62F0",
-            600: "#2B45E5",
-            700: "#1E4A8A",
-            800: "#1A3E74",
-            900: "#0F2550",
+            DEFAULT: "#006FFF",
+            50:  "#E5F0FF",
+            100: "#CCE1FF",
+            200: "#99C3FF",
+            300: "#66A5FF",
+            400: "#3387FF",
+            500: "#006FFF",
+            600: "#0059CC",
+            700: "#004399",
+            800: "#002D66",
+            900: "#001633",
           },
           teal: {
             DEFAULT: "#0D9488",

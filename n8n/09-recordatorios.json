@@ -1,0 +1,106 @@
+{
+  "name": "09 - Recordatorios 1h Antes",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "sw09-trigger",
+      "name": "Cada 30 Minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-1200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  c.id as cita_id,\n  c.lead_id,\n  c.client_name,\n  c.telefono,\n  c.fecha,\n  c.hora_inicio,\n  c.estado,\n  a.meta_phone_number_id as abogado_phone_number_id,\n  a.meta_access_token as abogado_access_token,\n  a.nombre as abogado_nombre,\n  a.nombre_despacho\nFROM citas c\nJOIN abogados a ON c.abogado_id = a.id\nWHERE c.estado = 'agendada'\n  AND c.recordatorio_enviado = FALSE\n  AND (c.fecha::TEXT || 'T' || c.hora_inicio)::TIMESTAMP BETWEEN NOW() + INTERVAL '55 minutes' AND NOW() + INTERVAL '65 minutes'\nLIMIT 50;",
+        "options": {}
+      },
+      "id": "sw09-get-upcoming",
+      "name": "Obtener Citas Próximas (1h)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-976, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict", "version": 1 },
+          "conditions": [
+            {
+              "id": "cond-hay-citas",
+              "leftValue": "={{ $json.cita_id }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "sw09-check-citas",
+      "name": "¿Hay Citas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-752, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.telefono }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"⏰ *Recordatorio de cita*\\n\\nHola {{ $json.client_name }}, te recordamos que tienes una cita programada hoy en *{{ $json.nombre_despacho || $json.abogado_nombre }}* a las *{{ $json.hora_inicio }} hrs*.\\n\\nTe esperamos. Si necesitas cancelar, por favor avísanos. ¡Hasta pronto! ⚖️\" }\n}",
+        "options": {}
+      },
+      "id": "sw09-send-reminder",
+      "name": "Enviar Recordatorio WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-528, 200],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE citas\nSET recordatorio_enviado = TRUE\nWHERE id = '{{ $json.cita_id }}';",
+        "options": {}
+      },
+      "id": "sw09-mark-sent",
+      "name": "Marcar Recordatorio Enviado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-304, 200]
+    }
+  ],
+  "connections": {
+    "Cada 30 Minutos": {
+      "main": [[{ "node": "Obtener Citas Próximas (1h)", "type": "main", "index": 0 }]]
+    },
+    "Obtener Citas Próximas (1h)": {
+      "main": [[{ "node": "¿Hay Citas?", "type": "main", "index": 0 }]]
+    },
+    "¿Hay Citas?": {
+      "main": [
+        [{ "node": "Enviar Recordatorio WhatsApp", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Enviar Recordatorio WhatsApp": {
+      "main": [[{ "node": "Marcar Recordatorio Enviado", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

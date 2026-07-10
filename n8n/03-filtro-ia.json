@@ -1,0 +1,151 @@
+{
+  "name": "03 - Filtro IA + Guard Node",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "sw03-trigger",
+      "name": "When Called by Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-1600, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict", "version": 1 },
+          "conditions": [
+            {
+              "id": "cond-bloqueado",
+              "leftValue": "={{ $json.lead_bloqueado }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "sw03-guard-bloqueado",
+      "name": "Guard: ¿Lead Bloqueado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-1376, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"Has alcanzado el límite de mensajes para esta sesión. Para continuar, por favor contacta directamente a {{ $json.nombre_despacho || $json.abogado_nombre }}.\" }\n}",
+        "options": {}
+      },
+      "id": "sw03-msg-bloqueado",
+      "name": "Mensaje Lead Bloqueado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-1152, 100],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $input.first().json;\n\n// Construir historial de mensajes para OpenAI\nconst systemPrompt = ctx.system_prompt_custom ||\n  `Eres un asistente de filtro para el despacho de abogados \"${ctx.nombre_despacho || ctx.abogado_nombre}\".\nTu objetivo es determinar si el prospecto califica como cliente potencial basado en su necesidad legal.\nEspecialidades: ${ctx.especialidades || 'derecho general'}.\n\nDebes:\n1. Hacer preguntas para entender su situación legal\n2. Determinar si el caso encaja con las especialidades del despacho\n3. Cuando tengas suficiente información, usar la función 'evaluar_lead' para dar tu veredicto\n\nSé amable, profesional y empático. No des asesoría legal directa.`;\n\nreturn [{\n  json: {\n    ...ctx,\n    system_prompt_final: systemPrompt\n  }\n}];"
+      },
+      "id": "sw03-prepare-prompt",
+      "name": "Preparar Prompt de Filtro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1152, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"{{ $json.system_prompt_final }}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.message_text }}\"\n    }\n  ],\n  \"tools\": [\n    {\n      \"type\": \"function\",\n      \"function\": {\n        \"name\": \"evaluar_lead\",\n        \"description\": \"Evalúa si el prospecto califica como cliente potencial\",\n        \"parameters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"califica\": { \"type\": \"boolean\", \"description\": \"true si califica, false si no\" },\n            \"razon\": { \"type\": \"string\", \"description\": \"Razón de la evaluación\" },\n            \"siguiente_paso\": { \"type\": \"string\", \"enum\": [\"agendar\", \"no_califica\", \"continuar_filtro\"] }\n          },\n          \"required\": [\"califica\", \"razon\", \"siguiente_paso\"]\n        }\n      }\n    }\n  ],\n  \"max_tokens\": 500\n}",
+        "options": {}
+      },
+      "id": "sw03-openai-call",
+      "name": "OpenAI: Filtro IA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-928, 400],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Preparar Prompt de Filtro').item.json;\nconst aiResponse = $input.first().json;\n\nconst message = aiResponse.choices?.[0]?.message;\nconst toolCalls = message?.tool_calls;\n\nlet califica = null;\nlet siguientePaso = 'continuar_filtro';\nlet razon = '';\nlet replyText = message?.content || '';\n\nif (toolCalls && toolCalls.length > 0) {\n  try {\n    const args = JSON.parse(toolCalls[0].function.arguments);\n    califica = args.califica;\n    siguientePaso = args.siguiente_paso || 'continuar_filtro';\n    razon = args.razon || '';\n    \n    if (califica === true) {\n      replyText = `Gracias por la información. Basado en lo que me comentas, creo que podemos ayudarte. Te voy a mostrar la disponibilidad para que puedas agendar una consulta con nosotros.`;\n    } else if (califica === false) {\n      replyText = `Agradezco que te hayas comunicado con nosotros. Después de analizar tu situación, en este momento los servicios del despacho no se ajustan completamente a lo que necesitas.`;\n    }\n  } catch(e) {\n    siguientePaso = 'continuar_filtro';\n  }\n}\n\n// Calcular tokens usados (aproximado)\nconst tokensUsados = aiResponse.usage?.total_tokens || 0;\nconst nuevosTokensLead = (ctx.tokens_consumidos_lead || 0) + tokensUsados;\nconst nuevosMensajes = (ctx.mensajes_ia_sesion || 0) + 1;\n\n// Verificar si debe bloquearse (límites)\nconst limiteMensajes = ctx.limite_mensajes_sesion || 10;\nconst limiteTokensLead = ctx.limite_tokens_lead || 5000;\nconst debeBloquearse = nuevosMensajes >= limiteMensajes || nuevosTokensLead >= limiteTokensLead;\n\nreturn [{\n  json: {\n    ...ctx,\n    califica_ia: califica,\n    siguiente_paso_ia: siguientePaso,\n    razon_ia: razon,\n    reply_text: replyText,\n    tokens_usados: tokensUsados,\n    nuevos_tokens_lead: nuevosTokensLead,\n    nuevos_mensajes: nuevosMensajes,\n    debe_bloquearse: debeBloquearse\n  }\n}];"
+      },
+      "id": "sw03-parse-ai",
+      "name": "Parsear Respuesta IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-704, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"{{ $json.reply_text }}\" }\n}",
+        "options": {}
+      },
+      "id": "sw03-send-reply",
+      "name": "Enviar Respuesta IA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-480, 400],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE leads\nSET\n  mensajes_ia_sesion = {{ $json.nuevos_mensajes }},\n  mensajes_ia_mes = mensajes_ia_mes + 1,\n  tokens_consumidos_total = {{ $json.nuevos_tokens_lead }},\n  tokens_consumidos_mes = tokens_consumidos_mes + {{ $json.tokens_usados }},\n  califica = {{ $json.califica_ia === null ? 'NULL' : $json.califica_ia }},\n  estado = CASE\n    WHEN '{{ $json.siguiente_paso_ia }}' = 'agendar' THEN 'calificado'\n    WHEN '{{ $json.siguiente_paso_ia }}' = 'no_califica' THEN 'no_califica'\n    ELSE estado\n  END,\n  bloqueado = {{ $json.debe_bloquearse ? 'TRUE' : 'FALSE' }},\n  ultimo_mensaje_en = NOW()\nWHERE id = '{{ $json.lead_id }}';",
+        "options": {}
+      },
+      "id": "sw03-update-lead",
+      "name": "Actualizar Lead con Resultado IA",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-256, 400]
+    }
+  ],
+  "connections": {
+    "When Called by Router": {
+      "main": [[{ "node": "Guard: ¿Lead Bloqueado?", "type": "main", "index": 0 }]]
+    },
+    "Guard: ¿Lead Bloqueado?": {
+      "main": [
+        [{ "node": "Mensaje Lead Bloqueado", "type": "main", "index": 0 }],
+        [{ "node": "Preparar Prompt de Filtro", "type": "main", "index": 0 }]
+      ]
+    },
+    "Preparar Prompt de Filtro": {
+      "main": [[{ "node": "OpenAI: Filtro IA", "type": "main", "index": 0 }]]
+    },
+    "OpenAI: Filtro IA": {
+      "main": [[{ "node": "Parsear Respuesta IA", "type": "main", "index": 0 }]]
+    },
+    "Parsear Respuesta IA": {
+      "main": [[{ "node": "Enviar Respuesta IA", "type": "main", "index": 0 }]]
+    },
+    "Enviar Respuesta IA": {
+      "main": [[{ "node": "Actualizar Lead con Resultado IA", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

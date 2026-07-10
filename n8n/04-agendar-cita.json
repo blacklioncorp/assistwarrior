@@ -1,0 +1,242 @@
+{
+  "name": "04 - Agendar Cita",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "sw04-trigger",
+      "name": "When Called by Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-2000, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtener el contexto completo del router\nconst ctx = $input.first().json;\n\n// Calcular fechas disponibles: próximos 5 días laborales\nconst diasLaborales = ctx.dias_laborales || ['lunes','martes','miercoles','jueves','viernes'];\nconst duracion = ctx.duracion_cita_min || 30;\nconst horaInicio = ctx.horario_inicio || '09:00';\nconst horaFin = ctx.horario_fin || '18:00';\n\nconst diasMap = {\n  'domingo': 0, 'lunes': 1, 'martes': 2, 'miercoles': 3,\n  'jueves': 4, 'viernes': 5, 'sabado': 6\n};\nconst diasNumericos = diasLaborales.map(d => diasMap[d.toLowerCase()] ?? 1);\n\n// Generar los próximos 5 días laborales\nconst hoy = new Date();\nconst diasDisp = [];\nlet diasBuscados = 0;\nlet i = 1;\nwhile (diasDisp.length < 3 && i <= 14) {\n  const fecha = new Date(hoy);\n  fecha.setDate(hoy.getDate() + i);\n  if (diasNumericos.includes(fecha.getDay())) {\n    diasDisp.push(fecha.toISOString().split('T')[0]);\n  }\n  i++;\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    dias_disponibles: diasDisp,\n    horario_inicio_calc: horaInicio,\n    horario_fin_calc: horaFin,\n    duracion_calc: duracion\n  }\n}];"
+      },
+      "id": "sw04-prepare-slots",
+      "name": "Preparar Slots Disponibles",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1776, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT fecha, hora_inicio, hora_fin\nFROM citas\nWHERE abogado_id = '{{ $json.abogado_id }}'\n  AND estado NOT IN ('cancelada')\n  AND fecha >= CURRENT_DATE\n  AND fecha <= CURRENT_DATE + INTERVAL '14 days'\nORDER BY fecha, hora_inicio;",
+        "options": {}
+      },
+      "id": "sw04-get-busy",
+      "name": "Obtener Citas Ocupadas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-1552, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construir slots libres por día\nconst ctx = $('Preparar Slots Disponibles').item.json;\nconst citasOcupadas = $input.all().map(i => i.json);\n\nconst duracion = ctx.duracion_calc || 30;\nconst [hIni, mIni] = (ctx.horario_inicio_calc || '09:00').split(':').map(Number);\nconst [hFin, mFin] = (ctx.horario_fin_calc || '18:00').split(':').map(Number);\n\nconst slotsLibres = [];\n\nfor (const dia of (ctx.dias_disponibles || [])) {\n  const citasDelDia = citasOcupadas.filter(c => c.fecha === dia);\n  \n  let slotStart = hIni * 60 + mIni;\n  const slotEnd = hFin * 60 + mFin;\n  \n  const slots = [];\n  while (slotStart + duracion <= slotEnd && slots.length < 3) {\n    const slotIso = `${dia}T${String(Math.floor(slotStart/60)).padStart(2,'0')}:${String(slotStart%60).padStart(2,'0')}:00`;\n    const slotEndTime = slotStart + duracion;\n    \n    const ocupado = citasDelDia.some(c => {\n      const cIni = c.hora_inicio ? parseInt(c.hora_inicio.replace(':','')) : 0;\n      const cFin = c.hora_fin ? parseInt(c.hora_fin.replace(':','')) : 0;\n      const sIni = slotStart;\n      const sFin = slotEndTime;\n      return !(sFin <= cIni || sIni >= cFin);\n    });\n    \n    if (!ocupado) {\n      const hora = `${String(Math.floor(slotStart/60)).padStart(2,'0')}:${String(slotStart%60).padStart(2,'0')}`;\n      slots.push(hora);\n    }\n    slotStart += duracion;\n  }\n  \n  if (slots.length > 0) {\n    // Formatear fecha legible en español\n    const fechaObj = new Date(dia + 'T12:00:00');\n    const opciones = { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' };\n    const fechaLegible = fechaObj.toLocaleDateString('es-ES', opciones);\n    slotsLibres.push({ fecha: dia, fecha_legible: fechaLegible, slots });\n  }\n}\n\nlet mensaje = `📅 *Disponibilidad para tu cita con ${ctx.nombre_despacho || ctx.abogado_nombre}*\\n\\n`;\nif (slotsLibres.length === 0) {\n  mensaje += '⚠️ Por el momento no tenemos horarios disponibles en los próximos días. Te contactaremos para coordinar.';\n} else {\n  mensaje += 'Estos son nuestros próximos horarios disponibles:\\n\\n';\n  for (const dia of slotsLibres) {\n    mensaje += `📆 *${dia.fecha_legible}*\\n`;\n    dia.slots.forEach(s => { mensaje += `   • ${s} hrs\\n`; });\n    mensaje += '\\n';\n  }\n  mensaje += '¿Cuál horario te viene mejor? Responde con la fecha y hora (ej: *Martes a las 10:00*).';\n}\n\nreturn [{\n  json: {\n    ...ctx,\n    slots_libres: slotsLibres,\n    hay_slots: slotsLibres.length > 0,\n    mensaje_disponibilidad: mensaje\n  }\n}];"
+      },
+      "id": "sw04-build-slots",
+      "name": "Construir Mensaje Disponibilidad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1328, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict", "version": 1 },
+          "conditions": [
+            {
+              "id": "cond-hay-slots",
+              "leftValue": "={{ $json.hay_slots }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "sw04-check-slots",
+      "name": "¿Hay Slots?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-1104, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"{{ $json.mensaje_disponibilidad }}\" }\n}",
+        "options": {}
+      },
+      "id": "sw04-send-slots",
+      "name": "Enviar Disponibilidad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-880, 200],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Intentar parsear la fecha/hora del mensaje del lead\nconst ctx = $('Construir Mensaje Disponibilidad').item.json;\nconst mensaje = ctx.message_text || '';\n\n// Patrones simples para detectar confirmación de horario\nconst regexHora = /(\\d{1,2})[:\\.]?(\\d{0,2})\\s*(?:hrs?|horas?|am|pm)?/i;\nconst regexFecha = /(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|hoy|ma[nñ]ana|\\d{1,2}[\\/\\-]\\d{1,2})/i;\n\nconst matchHora = mensaje.match(regexHora);\nconst matchFecha = mensaje.match(regexFecha);\n\nlet fechaSeleccionada = null;\nlet horaSeleccionada = null;\n\nif (matchHora) {\n  const h = matchHora[1].padStart(2,'0');\n  const m = (matchHora[2] || '00').padStart(2,'0');\n  horaSeleccionada = `${h}:${m}`;\n}\n\n// Buscar en los slots disponibles\nif (horaSeleccionada && ctx.slots_libres?.length > 0) {\n  for (const diaSlot of ctx.slots_libres) {\n    if (diaSlot.slots.some(s => s.startsWith(horaSeleccionada.substring(0,2)))) {\n      fechaSeleccionada = diaSlot.fecha;\n      break;\n    }\n  }\n  if (!fechaSeleccionada && ctx.slots_libres.length > 0) {\n    fechaSeleccionada = ctx.slots_libres[0].fecha;\n  }\n}\n\nconst puedeCitar = !!(fechaSeleccionada && horaSeleccionada);\n\nreturn [{\n  json: {\n    ...ctx,\n    fecha_cita: fechaSeleccionada,\n    hora_cita: horaSeleccionada,\n    puede_citar: puedeCitar,\n    datetime_cita: puedeCitar ? `${fechaSeleccionada}T${horaSeleccionada}:00` : null\n  }\n}];"
+      },
+      "id": "sw04-parse-datetime",
+      "name": "Parsear Fecha/Hora Elegida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-880, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "strict", "version": 1 },
+          "conditions": [
+            {
+              "id": "cond-puede-citar",
+              "leftValue": "={{ $json.puede_citar }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "sw04-check-datetime",
+      "name": "¿Fecha/Hora Válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-656, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO citas (abogado_id, lead_id, client_name, telefono, fecha, hora_inicio, hora_fin, estado, notas, created_at)\nVALUES (\n  '{{ $json.abogado_id }}',\n  '{{ $json.lead_id }}',\n  '{{ $json.client_name }}',\n  '{{ $json.from }}',\n  '{{ $json.fecha_cita }}',\n  '{{ $json.hora_cita }}',\n  '{{ $json.hora_cita }}',\n  'agendada',\n  'Agendada vía WhatsApp',\n  NOW()\n)\nRETURNING id;",
+        "options": {}
+      },
+      "id": "sw04-save-cita",
+      "name": "Guardar Cita en BD",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-432, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE leads\nSET estado = 'agendado',\n    cita_agendada_en = NOW(),\n    ultimo_mensaje_en = NOW()\nWHERE id = '{{ $('Parsear Fecha/Hora Elegida').item.json.lead_id }}';",
+        "options": {}
+      },
+      "id": "sw04-update-lead",
+      "name": "Actualizar Lead → Agendado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-208, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $('Parsear Fecha/Hora Elegida').item.json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Parsear Fecha/Hora Elegida').item.json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"✅ *¡Cita confirmada!*\\n\\n📅 Fecha: {{ $('Parsear Fecha/Hora Elegida').item.json.fecha_cita }}\\n🕐 Hora: {{ $('Parsear Fecha/Hora Elegida').item.json.hora_cita }} hrs\\n\\n🏛️ {{ $('Parsear Fecha/Hora Elegida').item.json.nombre_despacho || $('Parsear Fecha/Hora Elegida').item.json.abogado_nombre }}\\n\\nTe esperamos. Si necesitas cancelar o reagendar, contáctanos con anticipación. ¡Hasta entonces! 🤝\" }\n}",
+        "options": {}
+      },
+      "id": "sw04-confirm-msg",
+      "name": "Enviar Confirmación Cita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [16, 300],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"Lo sentimos, no pude entender el horario que elegiste. ¿Podrías indicarme el día y la hora? Por ejemplo: *Martes a las 10:00*.\" }\n}",
+        "options": {}
+      },
+      "id": "sw04-ask-again",
+      "name": "Pedir Fecha de Nuevo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-432, 500],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"😔 En este momento no tenemos horarios disponibles en los próximos días. Un asesor te contactará pronto para coordinar tu cita. ¡Gracias por tu interés!\" }\n}",
+        "options": {}
+      },
+      "id": "sw04-no-slots-msg",
+      "name": "Mensaje Sin Disponibilidad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-880, 400],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    }
+  ],
+  "connections": {
+    "When Called by Router": {
+      "main": [[{ "node": "Preparar Slots Disponibles", "type": "main", "index": 0 }]]
+    },
+    "Preparar Slots Disponibles": {
+      "main": [[{ "node": "Obtener Citas Ocupadas", "type": "main", "index": 0 }]]
+    },
+    "Obtener Citas Ocupadas": {
+      "main": [[{ "node": "Construir Mensaje Disponibilidad", "type": "main", "index": 0 }]]
+    },
+    "Construir Mensaje Disponibilidad": {
+      "main": [[{ "node": "¿Hay Slots?", "type": "main", "index": 0 }]]
+    },
+    "¿Hay Slots?": {
+      "main": [
+        [{ "node": "Enviar Disponibilidad", "type": "main", "index": 0 }],
+        [{ "node": "Mensaje Sin Disponibilidad", "type": "main", "index": 0 }]
+      ]
+    },
+    "Enviar Disponibilidad": {
+      "main": [[{ "node": "Parsear Fecha/Hora Elegida", "type": "main", "index": 0 }]]
+    },
+    "Parsear Fecha/Hora Elegida": {
+      "main": [[{ "node": "¿Fecha/Hora Válida?", "type": "main", "index": 0 }]]
+    },
+    "¿Fecha/Hora Válida?": {
+      "main": [
+        [{ "node": "Guardar Cita en BD", "type": "main", "index": 0 }],
+        [{ "node": "Pedir Fecha de Nuevo", "type": "main", "index": 0 }]
+      ]
+    },
+    "Guardar Cita en BD": {
+      "main": [[{ "node": "Actualizar Lead → Agendado", "type": "main", "index": 0 }]]
+    },
+    "Actualizar Lead → Agendado": {
+      "main": [[{ "node": "Enviar Confirmación Cita", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

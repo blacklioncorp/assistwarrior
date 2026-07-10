@@ -95,7 +95,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
               {isPro
-                ? 'Tienes acceso completo a todas las funciones de Smart Receptionist.'
+                ? 'Tienes acceso completo a todas las funciones de Senzio.'
                 : 'Actualiza a Pro para desbloquear llamadas de voz, calendario y más.'}
             </p>
           </div>

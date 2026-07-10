@@ -35,7 +35,7 @@ export default function MicroPage() {
 
           <h2 className="text-xl font-bold text-white tracking-tight">Acceso Administrativo</h2>
           <p className="mt-2 text-xs text-slate-400 max-w-xs">
-            Esta es una sección restringida para la administración del portal Smart Receptionist.
+            Esta es una sección restringida para la administración del portal Senzio.
           </p>
         </div>
 
@@ -79,7 +79,7 @@ export default function MicroPage() {
 
         <div className="mt-6 border-t border-slate-800/80 pt-5 text-center flex justify-center items-center gap-1.5 text-[10px] text-slate-500">
           <Stethoscope className="h-3.5 w-3.5" />
-          <span>Smart Receptionist Cloud Admin Console</span>
+          <span>Senzio Cloud Admin Console</span>
         </div>
       </div>
     </div>

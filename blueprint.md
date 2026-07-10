@@ -67,4 +67,21 @@ This is a Next.js (App Router, Tailwind CSS, TypeScript) application that provid
 12. **Implemented PostgreSQL trigger (`004_block_collision_trigger.sql`)** to prevent appointments from overlapping with `blocked_slots` directly at the database layer. This protects against automated integrations (such as n8n workflows) writing directly to the database.
 13. **Created a database-wide rebuild script (`005_rebuild_schema.sql`)** to allow users to completely clean and rebuild their Supabase tables, restoring user profiles from `auth.users` automatically. This resolves schema mismatches (e.g. `phone_number` vs `phone_whatsapp` column mismatch) caused by pre-existing tables.
 
+---
 
+## Current Plan: Fix Meta Webhook Verification Error
+
+### Goal
+Resolve the Meta webhook verification error ("No se ha podido validar la URL de devolución de llamada ni el identificador de verificación") by handling Meta's GET handshake request in the n8n `senzio-workflow.json` workflow.
+
+### Proposed Changes
+1. **[MODIFY] [senzio-workflow.json](file:///Users/adrianmendoza/Documents/ASISTENTEMEDICO/assistwarrior/n8n/senzio-workflow.json)**
+   - Add a new Webhook node `WhatsApp Webhook (Verification)` listening to `GET` requests on path `whatsapp-webhook`.
+   - Configure the GET Webhook node to use `responseMode: "responseNode"`.
+   - Add an IF node `Is Token Valid?` that checks if the `hub.verify_token` in the query parameters is exactly `senzio_token`.
+   - Add a Respond to Webhook node `Respond with Challenge` connected to the `true` output of the IF node. Set it to respond with plain text and return `hub.challenge`.
+   - Add a Respond to Webhook node `Respond with Forbidden` connected to the `false` output of the IF node. Set it to respond with a `403 Forbidden` status.
+
+### Verification Plan
+- The user will import the updated `senzio-workflow.json` to their n8n instance.
+- The user will test the webhook validation in the Meta dashboard, verifying that it now correctly handshakes and saves the webhook URL.

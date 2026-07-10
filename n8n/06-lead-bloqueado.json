@@ -1,0 +1,39 @@
+{
+  "name": "06 - Lead Bloqueado",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "sw06-trigger",
+      "name": "When Called by Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-800, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"Hola {{ $json.client_name }}, hemos llegado al límite de mensajes disponibles en la consulta actual. Para continuar recibiendo asesoría, por favor contacta directamente a {{ $json.nombre_despacho || $json.abogado_nombre }}. \\n\\n📞 Gracias por tu comprensión.\" }\n}",
+        "options": {}
+      },
+      "id": "sw06-send-blocked",
+      "name": "Enviar Mensaje Bloqueado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-576, 300],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    }
+  ],
+  "connections": {
+    "When Called by Router": {
+      "main": [[{ "node": "Enviar Mensaje Bloqueado", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

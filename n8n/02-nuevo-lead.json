@@ -1,0 +1,82 @@
+{
+  "name": "02 - Nuevo Lead + Saludo Inicial",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "sw02-trigger",
+      "name": "When Called by Router",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-1200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO leads (\n  abogado_id,\n  telefono,\n  nombre,\n  estado,\n  califica,\n  mensajes_ia_sesion,\n  mensajes_ia_mes,\n  tokens_consumidos_total,\n  tokens_consumidos_mes,\n  bloqueado,\n  creado_en,\n  ultimo_mensaje_en\n) VALUES (\n  '{{ $json.abogado_id }}',\n  '{{ $json.from }}',\n  '{{ $json.client_name }}',\n  'nuevo',\n  NULL,\n  0, 0, 0, 0,\n  FALSE,\n  NOW(), NOW()\n)\nON CONFLICT (abogado_id, telefono) DO UPDATE\n  SET ultimo_mensaje_en = NOW()\nRETURNING id, estado;",
+        "options": {}
+      },
+      "id": "sw02-create-lead",
+      "name": "Crear Lead en BD",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-976, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('When Called by Router').item.json;\nconst leadRow = $input.first().json;\n\nconst despacho = ctx.nombre_despacho || ctx.abogado_nombre || 'nuestro despacho';\nconst especialidades = Array.isArray(ctx.especialidades)\n  ? ctx.especialidades.join(', ')\n  : (ctx.especialidades || 'derecho');\n\nconst mensaje = `¡Hola ${ctx.client_name}! 👋\\n\\nBienvenido/a a *${despacho}*. Soy el asistente virtual y estoy aquí para ayudarte.\\n\\n⚖️ Nos especializamos en: ${especialidades}.\\n\\nPara brindarte la mejor orientación, cuéntame brevemente: *¿En qué tipo de asunto legal necesitas apoyo?*`;\n\nreturn [{\n  json: {\n    ...ctx,\n    lead_id: leadRow.id || ctx.lead_id,\n    lead_estado: leadRow.estado || 'nuevo',\n    mensaje_saludo: mensaje\n  }\n}];"
+      },
+      "id": "sw02-build-greeting",
+      "name": "Construir Saludo Inicial",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-752, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.abogado_phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"{{ $json.mensaje_saludo }}\" }\n}",
+        "options": {}
+      },
+      "id": "sw02-send-greeting",
+      "name": "Enviar Saludo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [-528, 300],
+      "credentials": {
+        "httpHeaderAuth": "Meta WhatsApp Bearer"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE leads\nSET estado = 'en_filtro',\n    ultimo_mensaje_en = NOW()\nWHERE id = '{{ $('Crear Lead en BD').item.json.id }}';",
+        "options": {}
+      },
+      "id": "sw02-update-estado",
+      "name": "Actualizar Estado → en_filtro",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [-304, 300]
+    }
+  ],
+  "connections": {
+    "When Called by Router": {
+      "main": [[{ "node": "Crear Lead en BD", "type": "main", "index": 0 }]]
+    },
+    "Crear Lead en BD": {
+      "main": [[{ "node": "Construir Saludo Inicial", "type": "main", "index": 0 }]]
+    },
+    "Construir Saludo Inicial": {
+      "main": [[{ "node": "Enviar Saludo", "type": "main", "index": 0 }]]
+    },
+    "Enviar Saludo": {
+      "main": [[{ "node": "Actualizar Estado → en_filtro", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
