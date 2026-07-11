@@ -17,6 +17,7 @@ import { SubmitButton } from "@/components/ui/submit-button"
 import { AlertCircle, CalendarPlus, Clock, UserPlus, Users, Ban } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import { useBusinessType } from "@/hooks/useBusinessType"
 
 interface Patient {
   id: string
@@ -62,6 +63,7 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
   const [patientMode, setPatientMode] = useState<'existing' | 'new'>('existing')
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [selectedTime, setSelectedTime] = useState<string>("")
+  const { labels } = useBusinessType()
 
   // Build a Set of blocked date strings (YYYY-MM-DD) for all-day blocks
   const allDayBlockedDates = useMemo(() => {
@@ -196,27 +198,30 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
     }
   }
 
+  const titleSingularUpper = labels.appointmentSingular.charAt(0).toUpperCase() + labels.appointmentSingular.slice(1)
+  const clientSingularUpper = labels.clientSingular.charAt(0).toUpperCase() + labels.clientSingular.slice(1)
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {children || (
-          <button className="inline-flex items-center gap-2 rounded-xl bg-[#1E4A8A] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#1a3f78] transition-colors active:scale-[0.98]">
+          <button className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 transition-colors active:scale-[0.98]">
             <CalendarPlus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nueva Cita</span>
+            <span className="hidden sm:inline">Nuevo {titleSingularUpper}</span>
           </button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="sm:max-w-[700px] bg-[#0F0F1A] border-slate-900 text-slate-100">
         <DialogHeader>
-          <DialogTitle>Agendar Cita</DialogTitle>
-          <DialogDescription>
-            Selecciona la fecha, hora y el paciente para agendar la cita médica.
+          <DialogTitle className="text-slate-100 text-lg font-bold">Agendar {titleSingularUpper}</DialogTitle>
+          <DialogDescription className="text-slate-400 text-xs">
+            Selecciona la fecha, hora y el {labels.clientSingular} para agendar.
           </DialogDescription>
         </DialogHeader>
 
-        <form action={action} className="pt-4">
+        <form action={action} className="pt-4 space-y-4">
           {error && (
-            <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            <div className="flex items-center gap-2 rounded-lg bg-red-950/30 border border-red-900/30 p-3 text-sm text-red-400">
               <AlertCircle className="h-4 w-4" />
               <p>{error}</p>
             </div>
@@ -226,20 +231,20 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
             <div className="space-y-4">
               {/* Patient selection toggle */}
               <div className="space-y-1.5">
-                <Label>Paciente</Label>
-                <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
+                <Label>{clientSingularUpper}</Label>
+                <div className="flex rounded-lg border border-slate-700 p-0.5 bg-slate-950">
                   <button
                     type="button"
                     onClick={() => setPatientMode('existing')}
                     className={cn(
                       "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-md transition-all",
                       patientMode === 'existing'
-                        ? "bg-white text-slate-800 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-200"
                     )}
                   >
                     <Users className="h-3.5 w-3.5" />
-                    Paciente Existente
+                    {clientSingularUpper} Existente
                   </button>
                   <button
                     type="button"
@@ -247,12 +252,12 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
                     className={cn(
                       "flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-semibold rounded-md transition-all",
                       patientMode === 'new'
-                        ? "bg-white text-slate-800 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
+                        ? "bg-purple-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-200"
                     )}
                   >
                     <UserPlus className="h-3.5 w-3.5" />
-                    Paciente Nuevo
+                    {clientSingularUpper} Nuevo
                   </button>
                 </div>
               </div>
@@ -265,11 +270,11 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
                     name="patient_id" 
                     required={patientMode === 'existing'}
                     defaultValue=""
-                    className="flex h-10 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#1E4A8A] disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-full items-center justify-between rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm shadow-sm placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50 text-slate-100"
                   >
-                    <option value="" disabled>Selecciona un paciente</option>
+                    <option value="" disabled className="bg-[#0F0F1A]">Selecciona un {labels.clientSingular}</option>
                     {patients.map(p => (
-                      <option key={p.id} value={p.id}>{p.full_name}</option>
+                      <option key={p.id} value={p.id} className="bg-[#0F0F1A]">{p.full_name}</option>
                     ))}
                   </select>
                   {fieldErrors.patient_id && (
@@ -280,28 +285,28 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
 
               {/* Render New Patient Fields (Sub-form) */}
               {patientMode === 'new' && (
-                <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50/30 p-3.5">
+                <div className="space-y-3 rounded-xl border border-slate-900 bg-slate-950/30 p-3.5">
                   <div className="space-y-1.5">
-                    <Label htmlFor="new_patient_name">Nombre completo</Label>
+                    <Label htmlFor="new_patient_name" className="text-slate-300 text-xs font-semibold">Nombre completo</Label>
                     <Input 
                       id="new_patient_name" 
                       name="new_patient_name" 
                       required={patientMode === 'new'} 
                       placeholder="Ej. Juan Pérez" 
-                      className="bg-white"
+                      className="bg-slate-950 border-slate-800 focus:border-purple-500 text-slate-100"
                     />
                     {fieldErrors.new_patient_name && (
                       <p className="text-xs text-red-500">{fieldErrors.new_patient_name[0]}</p>
                     )}
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor="new_patient_phone">Teléfono (WhatsApp)</Label>
+                    <Label htmlFor="new_patient_phone" className="text-slate-300 text-xs font-semibold">Teléfono (WhatsApp)</Label>
                     <Input 
                       id="new_patient_phone" 
                       name="new_patient_phone" 
                       required={patientMode === 'new'} 
                       placeholder="+52 1 55 1234 5678" 
-                      className="bg-white"
+                      className="bg-slate-950 border-slate-800 focus:border-purple-500 text-slate-100"
                     />
                     {fieldErrors.new_patient_phone && (
                       <p className="text-xs text-red-500">{fieldErrors.new_patient_phone[0]}</p>
@@ -311,59 +316,59 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
               )}
 
               <div className="space-y-1.5">
-                <Label htmlFor="title">Motivo de consulta</Label>
-                <Input id="title" name="title" required defaultValue="Consulta General" />
+                <Label htmlFor="title" className="text-slate-300 text-xs font-semibold">Motivo o detalle</Label>
+                <Input id="title" name="title" required defaultValue="General" className="bg-slate-950 border-slate-800 focus:border-purple-500 text-slate-100" />
                 {fieldErrors.title && (
                   <p className="text-xs text-red-500">{fieldErrors.title[0]}</p>
                 )}
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="duration_minutes">Duración (minutos)</Label>
+                <Label htmlFor="duration_minutes" className="text-slate-300 text-xs font-semibold">Duración aproximada</Label>
                 <select 
                   id="duration_minutes" 
                   name="duration_minutes" 
                   defaultValue="30"
-                  className="flex h-10 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-[#1E4A8A]"
+                  className="flex h-10 w-full items-center justify-between rounded-xl border border-slate-800 bg-slate-950 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-100"
                 >
-                  <option value="15">15 minutos</option>
-                  <option value="30">30 minutos</option>
-                  <option value="45">45 minutos</option>
-                  <option value="60">1 hora</option>
-                  <option value="90">1 hora 30 min</option>
-                  <option value="120">2 horas</option>
+                  <option value="15" className="bg-[#0F0F1A]">15 minutos</option>
+                  <option value="30" className="bg-[#0F0F1A]">30 minutos</option>
+                  <option value="45" className="bg-[#0F0F1A]">45 minutos</option>
+                  <option value="60" className="bg-[#0F0F1A]">1 hora</option>
+                  <option value="90" className="bg-[#0F0F1A]">1 hora 30 min</option>
+                  <option value="120" className="bg-[#0F0F1A]">2 horas</option>
                 </select>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="notes">Notas (opcional)</Label>
+                <Label htmlFor="notes" className="text-slate-300 text-xs font-semibold">Notas adicionales (opcional)</Label>
                 <Textarea 
                   id="notes" 
                   name="notes" 
-                  placeholder="Síntomas principales, preparación..." 
-                  className="min-h-[60px]"
+                  placeholder="Detalles sobre el pedido, entrega o notas sobre el caso..." 
+                  className="min-h-[60px] bg-slate-950 border-slate-800 focus:border-purple-500 text-slate-100"
                 />
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-              <Label className="mb-2 block">Fecha y Hora</Label>
+            <div className="rounded-xl border border-slate-900 bg-slate-950/20 p-4">
+              <Label className="mb-2 block text-slate-300 text-xs font-semibold">Fecha y Hora</Label>
 
               {/* Legend */}
               {blockedSlots.length > 0 && (
                 <div className="mb-2 flex items-center gap-3 text-[10px] text-slate-500">
                   <span className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-red-400 inline-block" />
+                    <span className="h-2 w-2 rounded-full bg-red-600 inline-block" />
                     Bloqueado
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-amber-300 inline-block" />
+                    <span className="h-2 w-2 rounded-full bg-amber-500 inline-block" />
                     Bloqueo parcial
                   </span>
                 </div>
               )}
 
-              <div className="rounded-xl border border-slate-200 bg-white p-2 mb-4 shadow-sm">
+              <div className="rounded-xl border border-slate-900 bg-slate-950 p-2 mb-4 shadow-sm text-slate-100">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -384,13 +389,13 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
                     allDayBlocked: 'day-all-blocked',
                     partialBlocked: 'day-partial-blocked',
                   }}
-                  className="mx-auto"
+                  className="mx-auto bg-slate-950 text-slate-100"
                 />
               </div>
 
               {/* All-day block warning */}
               {selectedDate && selectedDateBlockInfo?.type === 'all_day' && (
-                <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-50 p-2.5 text-xs text-red-600">
+                <div className="mb-3 flex items-center gap-2 rounded-lg bg-red-950/30 border border-red-900/30 p-2.5 text-xs text-red-400">
                   <Ban className="h-3.5 w-3.5 shrink-0" />
                   <span>Bloqueado: <strong>{selectedDateBlockInfo.title}</strong></span>
                 </div>
@@ -398,8 +403,8 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
 
               {selectedDate && (
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                    <Clock className="h-4 w-4 text-slate-400" />
+                  <div className="flex items-center gap-2 text-sm font-semibold text-slate-300">
+                    <Clock className="h-4 w-4 text-slate-500" />
                     Horarios Disponibles
                   </div>
                   <div className="grid grid-cols-3 gap-2 max-h-[160px] overflow-y-auto pr-1">
@@ -413,12 +418,12 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
                           disabled={isBlocked}
                           title={isBlocked ? 'Horario bloqueado' : undefined}
                           className={cn(
-                            "rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors",
+                            "rounded-lg border px-2 py-1.5 text-xs font-semibold transition-colors",
                             isBlocked
-                              ? "border-red-100 bg-red-50 text-red-300 cursor-not-allowed line-through"
+                              ? "border-red-950/40 bg-red-950/20 text-red-700 cursor-not-allowed line-through"
                               : selectedTime === time 
-                                ? "border-[#1E4A8A] bg-[#1E4A8A] text-white hover:bg-[#1a3f78]" 
-                                : "border-slate-200 bg-white text-slate-700 hover:border-[#1E4A8A] hover:bg-blue-50"
+                                ? "border-purple-600 bg-purple-600 text-white hover:bg-purple-700" 
+                                : "border-slate-800 bg-slate-950 text-slate-300 hover:border-purple-600 hover:bg-slate-900"
                           )}
                         >
                           {time}
@@ -433,7 +438,7 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
 
                   {/* Show blocking info for partial days */}
                   {blockedSlotTimes.size > 0 && (
-                    <div className="flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-2 text-[10px] text-amber-700">
+                    <div className="flex items-center gap-1.5 rounded-lg bg-amber-950/30 border border-amber-900/30 px-2.5 py-2 text-[10px] text-amber-500">
                       <Ban className="h-3 w-3 shrink-0" />
                       <span>Los horarios tachados están bloqueados y no pueden agendarse.</span>
                     </div>
@@ -443,16 +448,16 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
+          <div className="mt-6 flex justify-end gap-3 border-t border-slate-900/60 pt-4">
             <button
               type="button"
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:bg-slate-900 rounded-xl transition-colors"
               onClick={() => setOpen(false)}
             >
               Cancelar
             </button>
-            <SubmitButton pendingText="Agendando..." className="bg-[#1E4A8A] hover:bg-[#1a3f78] rounded-xl px-6">
-              Confirmar Cita
+            <SubmitButton pendingText="Agendando..." className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl px-6 text-xs font-semibold">
+              Confirmar {titleSingularUpper}
             </SubmitButton>
           </div>
         </form>

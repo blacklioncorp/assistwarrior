@@ -53,44 +53,57 @@ export default async function MessagesPage() {
   if (!user) redirect('/login')
 
   // Conversations ordered by most recent
-  const { data: conversations } = await supabase
-    .from('conversations')
-    .select('id, patient_name, patient_phone, status, last_message_at, last_message_preview, unread_count')
-    .eq('professional_id', user.id)
-    .order('last_message_at', { ascending: false })
+  const [conversationsRes, profRes] = await Promise.all([
+    supabase
+      .from('conversations')
+      .select('id, patient_name, patient_phone, status, last_message_at, last_message_preview, unread_count')
+      .eq('professional_id', user.id)
+      .order('last_message_at', { ascending: false }),
+    supabase
+      .from('professionals')
+      .select('business_type:business_types(name)')
+      .eq('id', user.id)
+      .single()
+  ])
 
-  const convs = (conversations ?? []) as ConversationRow[]
+  const convs = (conversationsRes.data ?? []) as ConversationRow[]
   const totalUnread = convs.reduce((acc, c) => acc + (c.unread_count ?? 0), 0)
 
+  // Dynamic vertical label
+  const businessTypeName = (profRes.data?.business_type as { name?: string } | null)?.name ?? ''
+  const isRestaurant = businessTypeName === 'restaurant'
+  const isLawFirm = businessTypeName === 'lawfirm'
+  const clientLabel = isRestaurant ? 'comensales' : isLawFirm ? 'clientes' : 'pacientes'
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl text-slate-100">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">Mensajes</h1>
+            <h1 className="text-2xl font-bold text-slate-100">Mensajes</h1>
             {totalUnread > 0 && (
-              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-700">
+              <span className="rounded-full bg-amber-950/30 border border-amber-900/30 px-2.5 py-0.5 text-xs font-semibold text-amber-400">
                 {totalUnread} sin leer
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-slate-500">
-            Conversaciones de WhatsApp y llamadas de voz
+          <p className="mt-1 text-sm text-slate-400">
+            Conversaciones de WhatsApp y llamadas de voz con tus {clientLabel}
           </p>
         </div>
       </div>
 
       {/* Conversations list */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-card overflow-hidden">
+      <div className="bg-[#0F0F1A] rounded-2xl border border-slate-900 shadow-card overflow-hidden">
         {convs.length === 0 ? (
           <EmptyState
             icon={MessageSquare}
             title="Sin mensajes aún"
-            description="Las conversaciones de WhatsApp y llamadas de voz aparecerán aquí cuando los pacientes contacten a tu asistente."
+            description={`Las conversaciones de WhatsApp aparecerán aquí cuando los ${clientLabel} contacten a tu asistente.`}
           />
         ) : (
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-slate-900">
             {convs.map((conv) => {
               const name = conv.patient_name ?? conv.patient_phone
               const initials = getInitials(name)
@@ -100,7 +113,7 @@ export default async function MessagesPage() {
               return (
                 <div
                   key={conv.id}
-                  className="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/60 transition-colors cursor-pointer"
+                  className="flex items-center gap-4 px-5 py-4 hover:bg-slate-900/40 transition-colors cursor-pointer"
                   role="button"
                   tabIndex={0}
                   aria-label={`Conversación con ${name}`}
@@ -108,13 +121,13 @@ export default async function MessagesPage() {
                   {/* Avatar */}
                   <div className="relative shrink-0">
                     <div
-                      className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold ${avatarColor}`}
+                      className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold bg-[#05050A] border border-slate-800 text-slate-300`}
                     >
                       {initials}
                     </div>
                     {/* Channel indicator */}
-                    <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow-sm">
-                      <MessageSquare className="h-2.5 w-2.5 text-green-600" />
+                    <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#05050A] border border-slate-800 shadow-sm">
+                      <MessageSquare className="h-2.5 w-2.5 text-emerald-400" />
                     </div>
                   </div>
 
@@ -123,14 +136,14 @@ export default async function MessagesPage() {
                     <div className="flex items-center justify-between gap-2">
                       <p
                         className={`text-sm truncate ${
-                          hasUnread ? 'font-bold text-slate-900' : 'font-medium text-slate-700'
+                          hasUnread ? 'font-bold text-slate-100' : 'font-medium text-slate-300'
                         }`}
                       >
                         {name}
                       </p>
                       <p
                         className={`text-[10px] shrink-0 ${
-                          hasUnread ? 'font-semibold text-blue-600' : 'text-slate-400'
+                          hasUnread ? 'font-semibold text-purple-400' : 'text-slate-500'
                         }`}
                       >
                         {timeAgo(conv.last_message_at)}
@@ -139,13 +152,13 @@ export default async function MessagesPage() {
                     <div className="flex items-center justify-between gap-2 mt-0.5">
                       <p
                         className={`text-xs truncate ${
-                          hasUnread ? 'text-slate-600' : 'text-slate-400'
+                          hasUnread ? 'text-slate-300 font-semibold' : 'text-slate-500'
                         }`}
                       >
                         {conv.last_message_preview ?? 'Sin mensajes aún'}
                       </p>
                       {hasUnread && (
-                        <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-[#1E4A8A] text-[10px] font-bold text-white">
+                        <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-purple-600 text-[10px] font-bold text-white">
                           {conv.unread_count > 9 ? '9+' : conv.unread_count}
                         </span>
                       )}
@@ -160,9 +173,9 @@ export default async function MessagesPage() {
 
       {/* Note about read-only AI conversations */}
       {convs.length > 0 && (
-        <p className="text-center text-xs text-slate-400 pb-2">
+        <p className="text-center text-xs text-slate-500 pb-2">
           Las conversaciones son gestionadas por tu asistente IA.{' '}
-          <a href="/dashboard/settings" className="text-blue-600 hover:underline">
+          <a href="/dashboard/settings" className="text-purple-400 hover:text-purple-300 hover:underline">
             Configura el tono aquí →
           </a>
         </p>

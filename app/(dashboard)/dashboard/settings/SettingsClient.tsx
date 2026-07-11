@@ -394,6 +394,11 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
       : isRestaurant
         ? 'Describe el tono del asistente al atender a tus clientes y tomar pedidos.'
         : 'Describe cómo debe hablar tu asistente con los pacientes. Esto guía las respuestas automáticas.',
+    tonePlaceholder: isRestaurant
+      ? 'Ej: "Sé amigable, rápido y servicial. Ayuda al comensal a armar su pedido y confirma cantidades."'
+      : isLawFirm
+        ? 'Ej: "Sé sumamente profesional, empático y claro. Enfatiza que la asesoría definitiva requiere una cita formal."'
+        : 'Ej: "Sé empático, cálido y profesional. Ayuda al paciente a resolver sus dudas y confirma sus datos antes de agendar."',
   }
 
   return (
@@ -524,7 +529,7 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
               name="tone_prompt"
               rows={3}
               defaultValue={professional.tone_prompt ?? ''}
-              placeholder='Ej: "Sé amable y profesional. Usa un lenguaje cálido pero directo."'
+              placeholder={labels.tonePlaceholder}
               className="textarea-dark"
             />
             <p className="mt-1.5 text-[11px] text-slate-500">

@@ -18,6 +18,8 @@ import { EmptyState } from '@/components/dashboard/EmptyState'
 import { formatTime, cn } from '@/lib/utils'
 import { NewAppointmentModal } from '@/components/dashboard/modals/NewAppointmentModal'
 
+import { useBusinessType } from '@/hooks/useBusinessType'
+
 type AppointmentStatus = 'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'
 type AppointmentChannel = 'whatsapp' | 'voice' | 'dashboard' | 'calcom'
 
@@ -31,7 +33,7 @@ const statusConfig: Record<AppointmentStatus, {
   confirmed:  { label: 'Confirmada', badge: 'success',     icon: CheckCircle2,  dot: 'bg-teal-400' },
   cancelled:  { label: 'Cancelada',  badge: 'destructive', icon: XCircle,       dot: 'bg-red-400' },
   completed:  { label: 'Completada', badge: 'secondary',   icon: CheckCircle2,  dot: 'bg-slate-400' },
-  no_show:    { label: 'No asistió', badge: 'warning',     icon: AlertCircle,   dot: 'bg-orange-400' },
+  no_show:    { label: 'No completada', badge: 'warning',   icon: AlertCircle,   dot: 'bg-orange-400' },
 }
 
 const channelConfig: Record<AppointmentChannel, {
@@ -97,6 +99,7 @@ export function AppointmentsClient({ appointments, patients, workingHours, block
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'cancelled'>('all')
   const [isPending, startTransition] = useTransition()
   const [actionError, setActionError] = useState<string | null>(null)
+  const { labels } = useBusinessType()
 
   // Filter appointments
   const filteredAppointments = appointments.filter((apt) => {
@@ -122,7 +125,7 @@ export function AppointmentsClient({ appointments, patients, workingHours, block
   const dateGroups = Object.entries(grouped)
 
   const handleCancel = (id: string) => {
-    if (!confirm('¿Estás seguro de que deseas cancelar esta cita?')) return
+    if (!confirm(`¿Estás seguro de que deseas cancelar este ${labels.appointmentSingular}?`)) return
 
     startTransition(async () => {
       setActionError(null)
@@ -134,20 +137,20 @@ export function AppointmentsClient({ appointments, patients, workingHours, block
   }
 
   const filterTabs = [
-    { id: 'all', label: 'Todas' },
+    { id: 'all', label: 'Todos' },
     { id: 'pending', label: 'Pendientes' },
-    { id: 'completed', label: 'Completadas' },
-    { id: 'cancelled', label: 'Canceladas' },
+    { id: 'completed', label: 'Completados' },
+    { id: 'cancelled', label: 'Cancelados' },
   ] as const
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl text-slate-100">
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Citas</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Gestiona y consulta todas tus citas
+          <h1 className="text-2xl font-bold text-slate-100">{labels.appointments}</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Gestiona y consulta todos tus {labels.appointments.toLowerCase()}
           </p>
         </div>
         <NewAppointmentModal 
@@ -158,7 +161,7 @@ export function AppointmentsClient({ appointments, patients, workingHours, block
       </div>
 
       {actionError && (
-        <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+        <div className="flex items-center gap-2 rounded-lg bg-red-950/30 border border-red-900/30 p-3 text-sm text-red-400">
           <AlertCircle className="h-4 w-4" />
           <p>{actionError}</p>
         </div>
@@ -173,8 +176,8 @@ export function AppointmentsClient({ appointments, patients, workingHours, block
             className={cn(
               "shrink-0 rounded-full border px-4 py-1.5 text-xs font-semibold transition-all duration-200",
               filter === tab.id
-                ? "bg-[#1E4A8A] text-white border-[#1E4A8A] shadow-sm shadow-blue-900/10"
-                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                ? "bg-purple-600 text-white border-purple-600 shadow-sm shadow-purple-900/10"
+                : "border-slate-800 bg-[#0F0F1A] text-slate-400 hover:border-slate-700 hover:text-slate-200"
             )}
           >
             {tab.label}
@@ -184,14 +187,14 @@ export function AppointmentsClient({ appointments, patients, workingHours, block
 
       {/* Appointments list */}
       {dateGroups.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-card">
+        <div className="bg-[#0F0F1A] rounded-2xl border border-slate-900 shadow-card">
           <EmptyState
             icon={Calendar}
-            title={filter === 'all' ? "Sin citas registradas" : "No se encontraron citas"}
+            title={filter === 'all' ? `Sin ${labels.appointments.toLowerCase()} registrados` : `No se encontraron ${labels.appointments.toLowerCase()}`}
             description={
               filter === 'all' 
-                ? "Las citas agendadas por WhatsApp, voz o manualmente aparecerán aquí." 
-                : `No tienes citas con estado "${filterTabs.find(t => t.id === filter)?.label}" en este momento.`
+                ? `Los ${labels.appointments.toLowerCase()} agendados aparecerán aquí automáticamente.` 
+                : `No tienes ${labels.appointments.toLowerCase()} con estado "${filterTabs.find(t => t.id === filter)?.label}" en este momento.`
             }
           />
         </div>
@@ -201,11 +204,11 @@ export function AppointmentsClient({ appointments, patients, workingHours, block
             <section key={dateLabel}>
               {/* Date label */}
               <div className="mb-3 flex items-center gap-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 capitalize">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 capitalize">
                   {dateLabel}
                 </p>
-                <div className="flex-1 h-px bg-slate-100" />
-                <span className="text-xs text-slate-400 font-medium">{apts.length} cita{apts.length !== 1 ? 's' : ''}</span>
+                <div className="flex-1 h-px bg-slate-900" />
+                <span className="text-xs text-slate-500 font-medium">{apts.length} {labels.appointmentSingular}{apts.length !== 1 ? 's' : ''}</span>
               </div>
 
               {/* Cards */}
@@ -220,7 +223,7 @@ export function AppointmentsClient({ appointments, patients, workingHours, block
                   return (
                     <div
                       key={apt.id}
-                      className="group flex items-center gap-4 rounded-2xl border border-slate-100 bg-white px-5 py-4 shadow-card hover:shadow-card-hover transition-all duration-200"
+                      className="group flex items-center gap-4 rounded-2xl border border-slate-900 bg-[#0F0F1A] px-5 py-4 shadow-card hover:bg-slate-900/20 transition-all duration-200"
                     >
                       {/* Status dot */}
                       <div
@@ -232,23 +235,23 @@ export function AppointmentsClient({ appointments, patients, workingHours, block
 
                       {/* Time */}
                       <div className="w-20 shrink-0">
-                        <p className="text-sm font-bold text-slate-800 tabular-nums">
+                        <p className="text-sm font-bold text-slate-200 tabular-nums">
                           {formatTime(apt.starts_at)}
                         </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
+                        <p className="text-[10px] text-slate-500 mt-0.5">
                           {formatTime(apt.ends_at)}
                         </p>
                       </div>
 
                       {/* Patient info */}
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-slate-800 truncate text-sm">
+                        <p className="font-bold text-slate-200 truncate text-sm">
                           {apt.patient_name}
                         </p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <p className="text-xs text-slate-400 truncate">{apt.title}</p>
                           {apt.patient_phone && (
-                            <p className="text-[10px] text-slate-300 hidden sm:block">
+                            <p className="text-[10px] text-slate-500 hidden sm:block">
                               · {apt.patient_phone}
                             </p>
                           )}
@@ -271,8 +274,8 @@ export function AppointmentsClient({ appointments, patients, workingHours, block
                           <button
                             onClick={() => handleCancel(apt.id)}
                             disabled={isPending}
-                            title="Cancelar cita"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                            title={`Cancelar ${labels.appointmentSingular}`}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-red-950/20 hover:text-red-400 transition-colors"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>

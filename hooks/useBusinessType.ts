@@ -15,9 +15,9 @@ export interface BusinessTypeLabels {
 const labelsByVertical: Record<BusinessVertical, BusinessTypeLabels> = {
   clinic: {
     appointments: 'Citas',
-    clients: 'Clientes',
+    clients: 'Pacientes',
     appointmentSingular: 'cita',
-    clientSingular: 'cliente',
+    clientSingular: 'paciente',
     showBlocked: true,
   },
   lawfirm: {
@@ -36,9 +36,9 @@ const labelsByVertical: Record<BusinessVertical, BusinessTypeLabels> = {
   },
   unknown: {
     appointments: 'Citas',
-    clients: 'Clientes',
+    clients: 'Pacientes',
     appointmentSingular: 'cita',
-    clientSingular: 'cliente',
+    clientSingular: 'paciente',
     showBlocked: true,
   },
 }
