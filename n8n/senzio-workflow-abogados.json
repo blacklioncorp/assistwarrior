@@ -1,0 +1,397 @@
+{
+  "name": "Senzio - Despacho de Abogados",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "whatsapp-abogados",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-get-webhook",
+      "name": "WhatsApp Webhook (Verification)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.query['hub.verify_token'] }}",
+              "operation": "equal",
+              "value2": "senzio_token"
+            }
+          ]
+        }
+      },
+      "id": "node-verify-token",
+      "name": "Is Token Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [{ "name": "Content-Type", "value": "text/plain" }]
+          }
+        }
+      },
+      "id": "node-respond-challenge",
+      "name": "Respond with Challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 50]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Forbidden: Verification token mismatch",
+        "options": {
+          "responseCode": 403,
+          "responseHeaders": {
+            "entries": [{ "name": "Content-Type", "value": "text/plain" }]
+          }
+        }
+      },
+      "id": "node-respond-forbidden",
+      "name": "Respond with Forbidden",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 150]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-abogados",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-1",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body;\nconst entry = body.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\nconst metadata = value?.metadata;\n\n// Ignorar status updates (delivered, read)\nif (!message) {\n  return [{ json: { skip: true } }];\n}\n\n// Solo procesar mensajes de texto\nif (message.type !== 'text') {\n  return [{ json: { skip: true, reason: 'non_text' } }];\n}\n\nreturn [{\n  json: {\n    skip: false,\n    phone: message.from,\n    message: message.text?.body,\n    businessPhoneId: metadata?.phone_number_id,\n    displayPhoneNumber: metadata?.display_phone_number,\n    messageId: message.id\n  }\n}];"
+      },
+      "id": "node-2",
+      "name": "Extract WhatsApp Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skip }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-skip-check",
+      "name": "Skip?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 320]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableId": "professionals",
+        "returnAll": true,
+        "select": "*, business_types(config, name)",
+        "matchType": "any",
+        "match": {
+          "matchValues": [
+            {
+              "keyName": "whatsapp_phone_number_id",
+              "keyValue": "={{ $('Extract WhatsApp Data').item.json.businessPhoneId }}"
+            }
+          ]
+        }
+      },
+      "id": "node-3",
+      "name": "Get Professional Config",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [850, 320],
+      "credentials": {
+        "supabaseApi": "Supabase account"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableId": "patients",
+        "returnAll": true,
+        "matchType": "any",
+        "match": {
+          "matchValues": [
+            {
+              "keyName": "phone_whatsapp",
+              "keyValue": "={{ $('Extract WhatsApp Data').item.json.phone }}"
+            },
+            {
+              "keyName": "professional_id",
+              "keyValue": "={{ $('Get Professional Config').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "id": "node-get-patient",
+      "name": "Get Patient History",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1050, 320],
+      "credentials": {
+        "supabaseApi": "Supabase account"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableId": "messages",
+        "returnAll": false,
+        "limit": 10,
+        "matchType": "any",
+        "match": {
+          "matchValues": [
+            {
+              "keyName": "conversation_id",
+              "keyValue": "={{ $('Get Patient History').item.json.conversation_id }}"
+            }
+          ]
+        }
+      },
+      "id": "node-get-messages",
+      "name": "Get Conversation History",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1250, 320],
+      "credentials": {
+        "supabaseApi": "Supabase account"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construir historial de conversación para OpenAI\nconst messages = $input.all();\nconst professional = $('Get Professional Config').item.json;\nconst patient = $('Get Patient History').item?.json || {};\nconst incoming = $('Extract WhatsApp Data').item.json;\n\nconst businessName = professional.full_name || 'el despacho';\nconst businessConfig = professional.business_config || {};\nconst btConfig = professional.business_types?.config || {};\n\n// Bugfix: Extract names/descriptions from custom fields object array\nconst customFields = btConfig.custom_fields || [];\nconst areas = customFields.map(f => f.description || f.name);\nif (areas.length === 0) {\n  areas.push('área del derecho', 'descripción del caso', 'modalidad');\n}\n\nconst tono = businessConfig.ai_tone || 'profesional, empático y claro';\nconst modalities = businessConfig.modalities || ['Presencial', 'Videollamada', 'Llamada telefónica'];\n\nconst systemPrompt = `Eres el asistente virtual del despacho de abogados \"${businessName}\".\\nTu objetivo es atender al cliente, entender su caso jurídico y agendar una consulta si aplica.\\n\\nTono: ${tono}\\n\\nINSTRUCCIONES:\\n1. Saluda al cliente por su nombre si lo conoces.\\n2. Pregunta de forma conversacional por: ${areas.join(', ')}.\\n3. Modalidades disponibles para la consulta: ${modalities.join(', ')}.\\n4. Cuando tengas nombre, fecha/hora preferida, área del derecho, descripción breve y modalidad → ejecuta la función Schedule_Legal_Consultation.\\n5. Si el cliente hace preguntas de asesoría legal, responde orientativamente pero SIEMPRE agrega: \"Esta información es orientativa. La evaluación definitiva de tu caso requiere una consulta formal con el abogado.\"\\n6. NUNCA des opiniones jurídicas definitivas sobre casos específicos.\\n7. Responde siempre en español.\\n8. Sé conciso — máximo 3 oraciones por respuesta.`;\n\n// Construir historial previo ordenado cronológicamente\nconst sortedMessages = [...messages]\n  .filter(m => m.json && m.json.content)\n  .sort((a, b) => new Date(a.json.created_at).getTime() - new Date(b.json.created_at).getTime());\n\nconst historial = sortedMessages.map(m => ({\n  role: m.json.sender === 'user' ? 'user' : 'assistant',\n  content: m.json.content\n}));\n\nconst openaiMessages = [\n  { role: 'system', content: systemPrompt },\n  ...historial,\n  { role: 'user', content: incoming.message }\n];\n\nreturn [{\n  json: {\n    openaiMessages,\n    professional,\n    patient,\n    incoming\n  }\n}];"
+      },
+      "id": "node-build-prompt",
+      "name": "Build Legal Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1450, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": {{ JSON.stringify($json.openaiMessages) }},\n  \"tools\": [\n    {\n      \"type\": \"function\",\n      \"function\": {\n        \"name\": \"Schedule_Legal_Consultation\",\n        \"description\": \"Agenda una consulta jurídica cuando se tienen todos los datos necesarios del cliente.\",\n        \"parameters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"client_name\": { \"type\": \"string\", \"description\": \"Nombre completo del cliente\" },\n            \"date_time\": { \"type\": \"string\", \"description\": \"Fecha y hora en formato ISO 8601\" },\n            \"legal_area\": { \"type\": \"string\", \"description\": \"Área del derecho: laboral, civil, penal, familiar, mercantil, corporativo, otro\" },\n            \"case_summary\": { \"type\": \"string\", \"description\": \"Descripción breve del caso en 1-2 oraciones\" },\n            \"modality\": { \"type\": \"string\", \"description\": \"Modalidad: presencial, videollamada, telefono\" }\n          },\n          \"required\": [\"client_name\", \"date_time\", \"legal_area\", \"case_summary\", \"modality\"]\n        }\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "node-4",
+      "name": "OpenAI Legal Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1650, 320],
+      "credentials": {
+        "httpHeaderAuth": "OpenAI Header Auth"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = $('OpenAI Legal Agent').item.json;\nconst buildData = $('Build Legal Prompt').item.json;\nconst message = agentOutput.choices?.[0]?.message;\nconst toolCalls = message?.tool_calls;\n\nif (toolCalls && toolCalls.length > 0) {\n  try {\n    const args = JSON.parse(toolCalls[0].function.arguments);\n    // Bugfix: Calculate end_time (starts_at + 1 hour) for Google Calendar\n    const startDate = new Date(args.date_time);\n    const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);\n    const end_time = endDate.toISOString();\n\n    return [{\n      json: {\n        has_function: true,\n        client_name: args.client_name,\n        date_time: args.date_time,\n        end_time: end_time,\n        legal_area: args.legal_area,\n        case_summary: args.case_summary,\n        modality: args.modality,\n        custom_data: `Consulta jurídica - ${args.legal_area}: ${args.case_summary} (${args.modality})`,\n        reply_text: message.content || `Perfecto ${args.client_name}, he agendado tu consulta jurídica. Te confirmo los detalles en breve.`,\n        professional: buildData.professional,\n        patient: buildData.patient,\n        incoming: buildData.incoming\n      }\n    }];\n  } catch (e) {\n    return [{ json: { has_function: false, reply_text: message?.content || 'Hubo un problema. ¿Puedes repetir tu mensaje?', professional: buildData.professional, incoming: buildData.incoming } }];\n  }\n}\n\nreturn [{\n  json: {\n    has_function: false,\n    reply_text: message?.content || 'Hubo un problema. ¿Puedes repetir tu mensaje?',\n    professional: buildData.professional,\n    patient: buildData.patient,\n    incoming: buildData.incoming\n  }\n}];"
+      },
+      "id": "node-9",
+      "name": "Extract Arguments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1850, 320]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.has_function }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-has-function",
+      "name": "Has Booking Data?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2050, 320]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "calendar": "primary",
+        "start": "={{ $json.date_time }}",
+        "end": "={{ $json.end_time }}",
+        "summary": "Consulta jurídica - {{ $json.client_name }}",
+        "description": "={{ $json.custom_data }}"
+      },
+      "id": "node-6",
+      "name": "Google Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [2250, 200],
+      "credentials": {
+        "googleCalendarOAuth2Api": "Google Calendar account"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://assistwarrior-two.vercel.app/api/n8n/appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Extract Arguments').item.json.professional.id }}\",\n  \"patient_phone\": \"{{ $('Extract Arguments').item.json.incoming.phone }}\",\n  \"patient_name\": \"{{ $('Extract Arguments').item.json.client_name }}\",\n  \"date\": \"{{ $('Extract Arguments').item.json.date_time.split('T')[0] }}\",\n  \"time\": \"{{ $('Extract Arguments').item.json.date_time.split('T')[1].slice(0,5) }}\",\n  \"duration_minutes\": 60,\n  \"reason\": \"{{ $('Extract Arguments').item.json.custom_data }}\",\n  \"channel\": \"whatsapp\"\n}",
+        "options": {}
+      },
+      "id": "node-7",
+      "name": "Save Appointment (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2450, 260],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construir mensaje de confirmación personalizado\nconst args = $('Extract Arguments').item.json;\nconst date = new Date(args.date_time);\nconst fecha = date.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst hora = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });\n\nconst modalityNormalized = (args.modality || '').toLowerCase().trim();\nconst modalidadTexto = {\n  presencial: 'de forma presencial en el despacho',\n  videollamada: 'por videollamada',\n  telefono: 'por llamada telefónica',\n  llamada: 'por llamada telefónica'\n};\n\nconst confirmacion = `✅ *Consulta jurídica agendada*\\n\\n📋 *Área:* ${args.legal_area}\\n📅 *Fecha:* ${fecha}\\n⏰ *Hora:* ${hora}\\n📍 *Modalidad:* ${modalidadTexto[modalityNormalized] || args.modality}\\n\\nEl abogado revisará tu caso y se pondrá en contacto contigo para confirmar. Si necesitas cancelar o reagendar, escríbenos con anticipación.\\n\\n_Esta información es orientativa. La evaluación definitiva de tu caso requiere la consulta formal con el abogado._`;\n\nreturn [{ json: { confirmation_message: confirmacion, ...args } }];"
+      },
+      "id": "node-build-confirm",
+      "name": "Build Confirmation Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2650, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extract Arguments').item.json.professional.whatsapp_phone_number_id + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extract Arguments').item.json.incoming.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $('Build Confirmation Message').item.json.confirmation_message }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "node-send-confirm",
+      "name": "Send Confirmation WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2850, 260],
+      "credentials": {
+        "httpHeaderAuth": "WhatsApp Header Auth"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $json.professional.whatsapp_phone_number_id + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.incoming.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.reply_text }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "node-8",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2250, 440],
+      "credentials": {
+        "httpHeaderAuth": "WhatsApp Header Auth"
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook (Verification)": {
+      "main": [[{ "node": "Is Token Valid?", "type": "main", "index": 0 }]]
+    },
+    "Is Token Valid?": {
+      "main": [
+        [{ "node": "Respond with Challenge", "type": "main", "index": 0 }],
+        [{ "node": "Respond with Forbidden", "type": "main", "index": 0 }]
+      ]
+    },
+    "WhatsApp Webhook": {
+      "main": [[{ "node": "Extract WhatsApp Data", "type": "main", "index": 0 }]]
+    },
+    "Extract WhatsApp Data": {
+      "main": [[{ "node": "Skip?", "type": "main", "index": 0 }]]
+    },
+    "Skip?": {
+      "main": [
+        [],
+        [{ "node": "Get Professional Config", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Professional Config": {
+      "main": [[{ "node": "Get Patient History", "type": "main", "index": 0 }]]
+    },
+    "Get Patient History": {
+      "main": [[{ "node": "Get Conversation History", "type": "main", "index": 0 }]]
+    },
+    "Get Conversation History": {
+      "main": [[{ "node": "Build Legal Prompt", "type": "main", "index": 0 }]]
+    },
+    "Build Legal Prompt": {
+      "main": [[{ "node": "OpenAI Legal Agent", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Legal Agent": {
+      "main": [[{ "node": "Extract Arguments", "type": "main", "index": 0 }]]
+    },
+    "Extract Arguments": {
+      "main": [[{ "node": "Has Booking Data?", "type": "main", "index": 0 }]]
+    },
+    "Has Booking Data?": {
+      "main": [
+        [{ "node": "Google Calendar", "type": "main", "index": 0 }],
+        [{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]
+      ]
+    },
+    "Google Calendar": {
+      "main": [[{ "node": "Save Appointment (API)", "type": "main", "index": 0 }]]
+    },
+    "Save Appointment (API)": {
+      "main": [[{ "node": "Build Confirmation Message", "type": "main", "index": 0 }]]
+    },
+    "Build Confirmation Message": {
+      "main": [[{ "node": "Send Confirmation WhatsApp", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "tags": [{ "name": "senzio" }, { "name": "abogados" }]
+}

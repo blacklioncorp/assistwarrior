@@ -26,8 +26,6 @@ export const metadata = {
   title: 'Dashboard',
 }
 
-
-
 export default async function DashboardPage() {
   const supabase = await createClient()
   const {
@@ -39,7 +37,6 @@ export default async function DashboardPage() {
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
   const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString()
 
-  // ── Queries ──────────────────────────────────────────────
   const [
     { data: todayAppointments },
     { count: totalPatients },
@@ -48,7 +45,6 @@ export default async function DashboardPage() {
     { count: unreadMessages },
     { data: recentActivity },
   ] = await Promise.all([
-    // Today's scheduled appointments with patient info
     supabase
       .from('appointments')
       .select('*, patients(full_name, phone_whatsapp)')
@@ -58,13 +54,11 @@ export default async function DashboardPage() {
       .lt('starts_at', todayEnd)
       .order('starts_at', { ascending: true }),
 
-    // Total patients
     supabase
       .from('patients')
       .select('*', { count: 'exact', head: true })
       .eq('professional_id', user.id),
 
-    // Total today's appointments
     supabase
       .from('appointments')
       .select('*', { count: 'exact', head: true })
@@ -72,7 +66,6 @@ export default async function DashboardPage() {
       .gte('starts_at', todayStart)
       .lt('starts_at', todayEnd),
 
-    // Confirmed today
     supabase
       .from('appointments')
       .select('*', { count: 'exact', head: true })
@@ -81,14 +74,12 @@ export default async function DashboardPage() {
       .gte('starts_at', todayStart)
       .lt('starts_at', todayEnd),
 
-    // Unread message threads
     supabase
       .from('conversations')
       .select('*', { count: 'exact', head: true })
       .eq('professional_id', user.id)
       .gt('unread_count', 0),
 
-    // Recent activity
     supabase
       .from('activity_log')
       .select('*')
@@ -97,30 +88,37 @@ export default async function DashboardPage() {
       .limit(6),
   ])
 
-  // ── Professional name ─────────────────────────────────────
   const { data: prof } = await supabase
     .from('professionals')
-    .select('full_name, specialty')
+    .select('full_name, specialty, business_type:business_types(name)')
     .eq('id', user.id)
     .single()
 
-  const displayName = prof?.full_name ?? user.email?.split('@')[0] ?? 'Doctor'
+  const displayName = prof?.full_name ?? user.email?.split('@')[0] ?? 'Usuario'
   const firstName = displayName.split(' ').find((n: string) => n.length > 2) ?? displayName
+
+  // Determine vertical labels
+  const businessTypeName = (prof?.business_type as { name?: string } | null)?.name ?? ''
+  const isRestaurant = businessTypeName === 'restaurant'
+  const isLawFirm = businessTypeName === 'lawfirm'
+
+  const appointmentLabel = isRestaurant ? 'Pedidos' : isLawFirm ? 'Consultas' : 'Citas'
+  const clientLabel = isLawFirm ? 'Casos' : 'Clientes'
 
   return (
     <div className="space-y-6 max-w-7xl">
       {/* ── Hero Greeting ── */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-white">
             {getGreeting()}, {firstName} 👋
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-400">
             {formatDate(today)} &middot; Aquí está el resumen de tu día.
           </p>
         </div>
         {prof?.specialty && (
-          <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 border border-blue-100">
+          <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-purple-950/30 border border-purple-900/30 px-3 py-1 text-xs font-medium text-purple-300">
             <CheckCircle2 className="h-3 w-3" />
             {prof.specialty}
           </span>
@@ -130,7 +128,7 @@ export default async function DashboardPage() {
       {/* ── Stats Grid ── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          title="Citas hoy"
+          title={`${appointmentLabel} hoy`}
           value={totalTodayAppts ?? 0}
           description={`${confirmedToday ?? 0} confirmadas`}
           icon={Calendar}
@@ -144,7 +142,7 @@ export default async function DashboardPage() {
           color={unreadMessages ? 'amber' : 'teal'}
         />
         <StatCard
-          title="Pacientes"
+          title={clientLabel}
           value={totalPatients ?? 0}
           description="Total registrados"
           icon={Users}
@@ -161,21 +159,23 @@ export default async function DashboardPage() {
 
       {/* ── Main content grid ── */}
       <div className="grid gap-5 lg:grid-cols-5">
-        {/* Today's Appointments */}
-        <section className="lg:col-span-3 bg-white rounded-2xl border border-slate-100 shadow-card overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-50">
+        {/* Today's Appointments / Orders / Consultations */}
+        <section className="lg:col-span-3 card-dark overflow-hidden">
+          <div className="section-header-dark">
             <div className="flex items-center gap-2">
-              <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-              <h2 className="text-sm font-semibold text-slate-800">Citas de Hoy</h2>
+              <div className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+              <h2 className="text-sm font-semibold text-slate-100">
+                {isRestaurant ? 'Pedidos de Hoy' : isLawFirm ? 'Consultas de Hoy' : 'Citas de Hoy'}
+              </h2>
               {todayAppointments && todayAppointments.length > 0 && (
-                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                <span className="rounded-full bg-purple-950/50 border border-purple-900/30 px-2 py-0.5 text-[10px] font-bold text-purple-300">
                   {todayAppointments.length}
                 </span>
               )}
             </div>
             <a
               href="/dashboard/appointments"
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium hover:underline transition-colors"
+              className="text-xs text-cyan-400 hover:text-cyan-300 font-medium hover:underline transition-colors"
             >
               Ver todas →
             </a>
@@ -184,11 +184,11 @@ export default async function DashboardPage() {
           {!todayAppointments || todayAppointments.length === 0 ? (
             <EmptyState
               icon={Calendar}
-              title="Sin citas para hoy"
-              description="Las citas de WhatsApp y voz aparecerán aquí automáticamente."
+              title={`Sin ${appointmentLabel.toLowerCase()} para hoy`}
+              description="Los registros de WhatsApp aparecerán aquí automáticamente."
             />
           ) : (
-            <div className="divide-y divide-slate-50">
+            <div className="divide-y divide-slate-900">
               {todayAppointments.map((apt) => {
                 const status = statusConfig[apt.status as AppointmentStatus] ?? statusConfig.scheduled
                 const StatusIcon = status.icon
@@ -197,29 +197,29 @@ export default async function DashboardPage() {
                 return (
                   <div
                     key={apt.id}
-                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50/60 transition-colors"
+                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-900/40 transition-colors"
                   >
                     {/* Time */}
                     <div className="w-14 shrink-0 text-center">
-                      <p className="text-sm font-bold text-slate-800 tabular-nums">
+                      <p className="text-sm font-bold text-slate-100 tabular-nums">
                         {formatTime(apt.starts_at)}
                       </p>
                     </div>
 
                     {/* Divider */}
-                    <div className="h-8 w-px bg-slate-100 shrink-0" />
+                    <div className="h-8 w-px bg-slate-800 shrink-0" />
 
                     {/* Patient info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-slate-800 text-sm truncate">
+                        <p className="font-semibold text-slate-100 text-sm truncate">
                           {apt.patient_name}
                         </p>
                         <Badge variant={channel.badge} className="hidden sm:inline-flex">
                           {channel.label}
                         </Badge>
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5 truncate">{apt.title}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">{apt.title}</p>
                     </div>
 
                     {/* Status */}
@@ -235,10 +235,12 @@ export default async function DashboardPage() {
         </section>
 
         {/* Recent Activity */}
-        <section className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-card overflow-hidden">
-          <div className="flex items-center gap-2 px-5 py-4 border-b border-slate-50">
-            <div className="h-1.5 w-1.5 rounded-full bg-teal-500" />
-            <h2 className="text-sm font-semibold text-slate-800">Actividad Reciente</h2>
+        <section className="lg:col-span-2 card-dark overflow-hidden">
+          <div className="section-header-dark">
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
+              <h2 className="text-sm font-semibold text-slate-100">Actividad Reciente</h2>
+            </div>
           </div>
 
           {!recentActivity || recentActivity.length === 0 ? (
@@ -261,15 +263,15 @@ export default async function DashboardPage() {
                       <Icon className="h-3.5 w-3.5" strokeWidth={2} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-slate-700 leading-snug">
+                      <p className="text-sm font-medium text-slate-200 leading-snug">
                         {activity.title}
                       </p>
                       {activity.description && (
-                        <p className="text-xs text-slate-400 truncate mt-0.5">
+                        <p className="text-xs text-slate-500 truncate mt-0.5">
                           {activity.description}
                         </p>
                       )}
-                      <p className="text-[10px] text-slate-400 mt-1">
+                      <p className="text-[10px] text-slate-600 mt-1">
                         {timeAgo(activity.created_at)}
                       </p>
                     </div>

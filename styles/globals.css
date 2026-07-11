@@ -100,21 +100,54 @@
 }
 
 @layer components {
-  /* ── Stat Card Variants ── */
+  /* ── Dark Mode Stat Card Variants ── */
   .stat-card-blue {
-    @apply bg-blue-50 text-blue-600;
+    @apply bg-blue-950/30 text-blue-400 border border-blue-900/30;
   }
   .stat-card-teal {
-    @apply bg-teal-50 text-teal-600;
+    @apply bg-cyan-950/30 text-cyan-400 border border-cyan-900/30;
   }
   .stat-card-amber {
-    @apply bg-amber-50 text-amber-600;
+    @apply bg-amber-950/30 text-amber-400 border border-amber-900/30;
   }
   .stat-card-red {
-    @apply bg-red-50 text-red-600;
+    @apply bg-red-950/30 text-red-400 border border-red-900/30;
   }
   .stat-card-violet {
-    @apply bg-violet-50 text-violet-600;
+    @apply bg-purple-950/30 text-purple-400 border border-purple-900/30;
+  }
+
+  /* ── Dark Mode Card Surface ── */
+  .card-dark {
+    @apply bg-[#0F0F1A] border border-slate-900 rounded-2xl;
+  }
+  .card-dark-hover {
+    @apply bg-[#0F0F1A] border border-slate-900 rounded-2xl hover:border-slate-800 transition-colors;
+  }
+
+  /* ── Dark Mode Input ── */
+  .input-dark {
+    @apply w-full rounded-xl border border-slate-800 bg-[#0F0F1A] px-3.5 py-2.5 text-sm text-slate-100
+           placeholder:text-[#64748B] focus:border-purple-500 focus:outline-none focus:ring-2
+           focus:ring-purple-500/20 disabled:bg-slate-900/50 disabled:text-slate-500
+           disabled:cursor-not-allowed transition-colors;
+  }
+
+  /* ── Dark Mode Textarea ── */
+  .textarea-dark {
+    @apply w-full rounded-xl border border-slate-800 bg-[#0F0F1A] px-3.5 py-2.5 text-sm text-slate-100
+           placeholder:text-[#64748B] focus:border-purple-500 focus:outline-none focus:ring-2
+           focus:ring-purple-500/20 resize-none transition-colors;
+  }
+
+  /* ── Dark Mode Label ── */
+  .label-dark {
+    @apply mb-1.5 block text-xs font-semibold text-slate-300;
+  }
+
+  /* ── Section header inside card ── */
+  .section-header-dark {
+    @apply flex items-center justify-between px-5 py-4 border-b border-slate-900;
   }
 
   /* ── Sidebar nav item ── */
@@ -129,35 +162,42 @@
   .nav-item.active {
     background-color: hsl(var(--sidebar-active));
     color: hsl(0 0% 100%);
-    @apply border-l-2 border-blue-400;
-    padding-left: 10px; /* 12px - 2px border */
+    @apply border-l-2 border-purple-500;
+    padding-left: 10px;
   }
   .nav-item.active .nav-icon {
-    @apply text-blue-400;
+    @apply text-purple-400;
   }
 
-  /* ── Channel badges ── */
+  /* ── Channel badges (dark-mode compatible) ── */
   .badge-whatsapp {
-    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700;
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-950/40 text-green-400;
   }
   .badge-voice {
-    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700;
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-blue-950/40 text-blue-400;
   }
   .badge-dashboard {
-    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-slate-100 text-slate-600;
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-slate-800 text-slate-400;
   }
   .badge-calcom {
-    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-violet-100 text-violet-700;
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold bg-purple-950/40 text-purple-400;
+  }
+
+  /* ── Primary Button ── */
+  .btn-primary {
+    @apply flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500
+           hover:from-purple-500 hover:to-cyan-400 px-5 py-2.5 text-sm font-semibold text-white
+           shadow-lg hover:shadow-cyan-500/10 transition-all active:scale-[0.98];
   }
 
   /* ── Glass card ── */
   .glass-card {
-    @apply bg-white/80 backdrop-blur-sm border border-white/50 shadow-sm;
+    @apply bg-[#0F0F1A]/80 backdrop-blur-sm border border-slate-900/50;
   }
 
   /* ── Focus ring ── */
   .focus-ring {
-    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05050A];
   }
 }
 

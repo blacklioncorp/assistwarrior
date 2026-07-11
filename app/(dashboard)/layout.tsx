@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { Header } from '@/components/dashboard/Header'
 import { MobileNav } from '@/components/dashboard/MobileNav'
+import { ProfessionalProvider } from '@/contexts/ProfessionalContext'
 
 export default async function DashboardLayout({
   children,
@@ -18,10 +19,10 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
-  // Fetch professional profile
+  // Fetch professional profile with business type
   const { data: professional } = await supabase
     .from('professionals')
-    .select('full_name, email, specialty, clinic_name, plan, plan_status, is_superadmin, avatar_url')
+    .select('full_name, email, specialty, clinic_name, plan, plan_status, is_superadmin, avatar_url, business_type:business_types(name)')
     .eq('id', user.id)
     .single()
 
@@ -31,6 +32,8 @@ export default async function DashboardLayout({
     .select('*', { count: 'exact', head: true })
     .eq('professional_id', user.id)
     .gt('unread_count', 0)
+
+  const businessTypeName = (professional?.business_type as { name?: string } | null)?.name ?? ''
 
   const prof = professional ?? {
     full_name: null,
@@ -43,25 +46,32 @@ export default async function DashboardLayout({
     avatar_url: null,
   }
 
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Desktop Sidebar */}
-      <Sidebar professional={prof} />
+    <ProfessionalProvider
+      value={{
+        businessTypeName,
+        fullName: prof.full_name ?? null,
+        email: prof.email ?? user.email ?? '',
+      }}
+    >
+      <div className="min-h-screen bg-background">
+        {/* Desktop Sidebar */}
+        <Sidebar professional={prof} businessTypeName={businessTypeName} />
 
-      {/* Main content area — offset by sidebar on desktop */}
-      <div className="lg:pl-64">
-        <Header
-          professional={prof}
-          unreadCount={unreadMessages ?? 0}
-        />
-        <main className="p-4 pb-24 lg:p-8 lg:pb-8 animate-fade-in">
-          {children}
-        </main>
+        {/* Main content area — offset by sidebar on desktop */}
+        <div className="lg:pl-64">
+          <Header
+            professional={prof}
+            unreadCount={unreadMessages ?? 0}
+          />
+          <main className="p-4 pb-24 lg:p-8 lg:pb-8 animate-fade-in">
+            {children}
+          </main>
+        </div>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileNav />
       </div>
-
-      {/* Mobile Bottom Navigation */}
-      <MobileNav />
-    </div>
+    </ProfessionalProvider>
   )
 }

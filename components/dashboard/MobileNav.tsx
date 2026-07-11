@@ -10,17 +10,19 @@ import {
   Settings,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-const tabs = [
-  { href: '/dashboard', label: 'Inicio', icon: LayoutDashboard },
-  { href: '/dashboard/appointments', label: 'Citas', icon: Calendar },
-  { href: '/dashboard/messages', label: 'Mensajes', icon: MessageSquare },
-  { href: '/dashboard/patients', label: 'Clientes', icon: Users },
-  { href: '/dashboard/settings', label: 'Ajustes', icon: Settings },
-]
+import { useBusinessType } from '@/hooks/useBusinessType'
 
 export function MobileNav() {
   const pathname = usePathname()
+  const { labels } = useBusinessType()
+
+  const tabs = [
+    { href: '/dashboard',              label: 'Inicio',          icon: LayoutDashboard },
+    { href: '/dashboard/appointments', label: labels.appointments, icon: Calendar },
+    { href: '/dashboard/messages',     label: 'Mensajes',        icon: MessageSquare },
+    { href: '/dashboard/patients',     label: labels.clients,    icon: Users },
+    { href: '/dashboard/settings',     label: 'Ajustes',         icon: Settings },
+  ]
 
   return (
     <nav

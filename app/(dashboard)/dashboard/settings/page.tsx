@@ -18,7 +18,7 @@ export default async function SettingsPage() {
   ] = await Promise.all([
     supabase
       .from('professionals')
-      .select('id, full_name, email, specialty, clinic_name, phone_whatsapp, google_calendar_connected, calcom_api_key, voice_enabled, voice_phone_number, working_hours, tone_prompt, avatar_url')
+      .select('id, full_name, email, specialty, clinic_name, phone_whatsapp, google_calendar_connected, calcom_api_key, voice_enabled, voice_phone_number, working_hours, tone_prompt, avatar_url, business_config, business_type:business_types(name)')
       .eq('id', user.id)
       .single(),
     supabase
@@ -27,6 +27,8 @@ export default async function SettingsPage() {
       .eq('professional_id', user.id)
       .order('starts_at', { ascending: false })
   ])
+
+  const businessTypeName = (professional?.business_type as { name?: string } | null)?.name ?? ''
 
   const prof = professional ?? {
     full_name: null,
@@ -41,12 +43,14 @@ export default async function SettingsPage() {
     working_hours: null,
     tone_prompt: '',
     avatar_url: null,
+    business_config: null,
   }
 
   return (
-    <SettingsClient 
-      professional={prof} 
-      initialBlockedSlots={blockedSlots || []} 
+    <SettingsClient
+      professional={prof}
+      initialBlockedSlots={blockedSlots || []}
+      businessTypeName={businessTypeName}
     />
   )
 }

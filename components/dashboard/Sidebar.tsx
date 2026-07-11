@@ -12,6 +12,9 @@ import {
   ChevronRight,
   Sparkles,
   ShieldCheck,
+  Ban,
+  Briefcase,
+  UtensilsCrossed,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getInitials } from '@/lib/utils'
@@ -22,15 +25,15 @@ function SenzioLogo({ className = "h-5 w-5" }: { className?: string }) {
     <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="side-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#8B5CF6" />
-          <stop offset="100%" stop-color="#06B6D4" />
+          <stop offset="0%" stopColor="#8B5CF6" />
+          <stop offset="100%" stopColor="#06B6D4" />
         </linearGradient>
       </defs>
-      <path 
-        d="M35,25 C45,15 65,15 75,30 C85,45 65,55 50,50 C35,45 15,55 25,70 C35,85 55,85 65,75" 
-        stroke="url(#side-logo-grad)" 
-        strokeWidth="12" 
-        strokeLinecap="round" 
+      <path
+        d="M35,25 C45,15 65,15 75,30 C85,45 65,55 50,50 C35,45 15,55 25,70 C35,85 55,85 65,75"
+        stroke="url(#side-logo-grad)"
+        strokeWidth="12"
+        strokeLinecap="round"
       />
       <circle cx="35" cy="25" r="8" fill="#8B5CF6" />
       <circle cx="65" cy="75" r="8" fill="#06B6D4" />
@@ -38,32 +41,57 @@ function SenzioLogo({ className = "h-5 w-5" }: { className?: string }) {
   )
 }
 
-const navItems = [
-  {
-    href: '/dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    exact: true,
-  },
-  {
-    href: '/dashboard/appointments',
-    label: 'Citas',
-    icon: Calendar,
-    exact: false,
-  },
-  {
-    href: '/dashboard/messages',
-    label: 'Mensajes',
-    icon: MessageSquare,
-    exact: false,
-  },
-  {
-    href: '/dashboard/patients',
-    label: 'Clientes',
-    icon: Users,
-    exact: false,
-  },
-]
+// Vertical icon for the sidebar subtitle
+function VerticalIcon({ businessTypeName }: { businessTypeName: string }) {
+  if (businessTypeName === 'lawfirm') return <Briefcase className="h-3 w-3" />
+  if (businessTypeName === 'restaurant') return <UtensilsCrossed className="h-3 w-3" />
+  return null
+}
+
+// Build nav items dynamically based on vertical
+function buildNavItems(businessTypeName: string) {
+  const isRestaurant = businessTypeName === 'restaurant'
+  const isLawFirm = businessTypeName === 'lawfirm'
+
+  return [
+    {
+      href: '/dashboard',
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      exact: true,
+      visible: true,
+    },
+    {
+      href: '/dashboard/appointments',
+      label: isRestaurant ? 'Pedidos' : isLawFirm ? 'Consultas' : 'Citas',
+      icon: Calendar,
+      exact: false,
+      visible: true,
+    },
+    {
+      href: '/dashboard/messages',
+      label: 'Mensajes',
+      icon: MessageSquare,
+      exact: false,
+      visible: true,
+    },
+    {
+      href: '/dashboard/patients',
+      label: isLawFirm ? 'Casos' : 'Clientes',
+      icon: Users,
+      exact: false,
+      visible: true,
+    },
+    // Bloqueos: hidden for restaurants
+    {
+      href: '/dashboard/settings?tab=blocked',
+      label: 'Bloqueos',
+      icon: Ban,
+      exact: false,
+      visible: !isRestaurant,
+    },
+  ].filter(item => item.visible)
+}
 
 const bottomNavItems = [
   {
@@ -71,12 +99,14 @@ const bottomNavItems = [
     label: 'Configuración',
     icon: Settings,
     exact: false,
+    visible: true,
   },
   {
     href: '/dashboard/billing',
     label: 'Facturación',
     icon: CreditCard,
     exact: false,
+    visible: true,
   },
 ]
 
@@ -90,19 +120,20 @@ interface SidebarProps {
     plan_status?: string | null
     is_superadmin?: boolean | null
   }
+  businessTypeName?: string
 }
 
 function NavLink({
   item,
   pathname,
 }: {
-  item: (typeof navItems)[0]
+  item: ReturnType<typeof buildNavItems>[0]
   pathname: string
 }) {
   const Icon = item.icon
   const isActive = item.exact
     ? pathname === item.href
-    : pathname === item.href || pathname.startsWith(item.href + '/')
+    : pathname === item.href || pathname.startsWith(item.href.split('?')[0] + '/')
 
   return (
     <Link
@@ -132,11 +163,21 @@ function NavLink({
   )
 }
 
-export function Sidebar({ professional }: SidebarProps) {
+export function Sidebar({ professional, businessTypeName = '' }: SidebarProps) {
   const pathname = usePathname()
   const displayName = professional.full_name ?? professional.email.split('@')[0]
   const initials = getInitials(displayName)
   const isPro = professional.plan === 'pro'
+  const navItems = buildNavItems(businessTypeName)
+
+  // Subtitle under "Senzio" branding
+  const verticalLabel: Record<string, string> = {
+    doctor: 'Clínica / Salud',
+    dentist: 'Odontología',
+    lawfirm: 'Despacho de Abogados',
+    restaurant: 'Restaurante',
+  }
+  const subtitle = verticalLabel[businessTypeName] || professional.specialty || professional.clinic_name || 'Agente de IA'
 
   return (
     <aside
@@ -154,8 +195,9 @@ export function Sidebar({ professional }: SidebarProps) {
           <p className="truncate text-sm font-bold text-white leading-tight">
             Senzio
           </p>
-          <p className="truncate text-[10px] font-medium text-slate-400 tracking-wide uppercase mt-0.5">
-            {professional.specialty ?? professional.clinic_name ?? 'Agente de IA'}
+          <p className="truncate text-[10px] font-medium text-slate-400 tracking-wide uppercase mt-0.5 flex items-center gap-1">
+            <VerticalIcon businessTypeName={businessTypeName} />
+            {subtitle}
           </p>
         </div>
       </div>
@@ -173,6 +215,7 @@ export function Sidebar({ professional }: SidebarProps) {
                 label: 'Superadmin',
                 icon: ShieldCheck,
                 exact: false,
+                visible: true,
               }}
               pathname={pathname}
             />
@@ -205,7 +248,7 @@ export function Sidebar({ professional }: SidebarProps) {
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-white">Actualizar a Pro</p>
               <p className="text-[10px] text-slate-500 mt-0.5">
-                Llamadas + WhatsApp ilimitadas
+                WhatsApp + atención ilimitados
               </p>
             </div>
             <ChevronRight className="h-3.5 w-3.5 text-slate-600 group-hover:text-slate-400 transition-colors" />

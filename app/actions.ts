@@ -394,9 +394,9 @@ export async function rescheduleAppointment(appointmentId: string, newStartsAt: 
 }
 
 /**
- * Updates settings for the authenticated professional, including tone prompt.
+ * Updates settings for the authenticated professional, including tone prompt and business_config fields.
  */
-export async function updateSettings(prevState: any, formData: FormData) {
+export async function updateSettings(prevState: unknown, formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
@@ -413,9 +413,53 @@ export async function updateSettings(prevState: any, formData: FormData) {
     return { errors: validatedFields.error.flatten().fieldErrors }
   }
 
+  // Build the standard update payload (only non-empty values)
+  const updatePayload: Record<string, unknown> = {}
+  for (const [key, val] of Object.entries(validatedFields.data)) {
+    if (val !== undefined && val !== null) {
+      updatePayload[key] = val
+    }
+  }
+
+  // ── Handle business_config fields ──
+  // These go into the JSONB business_config column and are merged with existing data.
+  const businessConfigKeys = ['menu', 'modalities', 'orders_notification_phone', 'menu_image_url']
+  const businessConfigUpdates: Record<string, unknown> = {}
+
+  for (const key of businessConfigKeys) {
+    const val = formData.get(key)
+    if (val !== null) {
+      if (key === 'menu' || key === 'modalities') {
+        try {
+          businessConfigUpdates[key] = JSON.parse(val as string)
+        } catch {
+          return { error: `Formato inválido para ${key}` }
+        }
+      } else {
+        businessConfigUpdates[key] = val
+      }
+    }
+  }
+
+  if (Object.keys(businessConfigUpdates).length > 0) {
+    // Fetch existing config to merge
+    const { data: existing } = await supabase
+      .from('professionals')
+      .select('business_config')
+      .eq('id', user.id)
+      .single()
+
+    const currentConfig = (existing?.business_config as Record<string, unknown>) ?? {}
+    updatePayload.business_config = { ...currentConfig, ...businessConfigUpdates }
+  }
+
+  if (Object.keys(updatePayload).length === 0) {
+    return { success: true } // nothing to update
+  }
+
   const { error } = await supabase
     .from('professionals')
-    .update(validatedFields.data)
+    .update(updatePayload)
     .eq('id', user.id)
 
   if (error) return { error: 'Error al actualizar configuración: ' + error.message }
@@ -423,6 +467,7 @@ export async function updateSettings(prevState: any, formData: FormData) {
   revalidatePath('/dashboard/settings')
   return { success: true }
 }
+
 
 /**
  * Uploads a profile avatar image to Supabase Storage and updates the professional's avatar_url.
