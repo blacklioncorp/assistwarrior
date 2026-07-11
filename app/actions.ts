@@ -468,6 +468,64 @@ export async function updateSettings(prevState: unknown, formData: FormData) {
   return { success: true }
 }
 
+/**
+ * Completes the onboarding process for new professionals.
+ */
+export async function completeOnboarding(prevState: unknown, formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  const businessTypeId = formData.get('business_type_id') as string
+  const clinicName = formData.get('clinic_name') as string
+  const fullName = formData.get('full_name') as string
+
+  if (!businessTypeId || businessTypeId.trim() === '') {
+    return { error: 'Debes seleccionar un tipo de negocio' }
+  }
+  if (!clinicName || clinicName.trim().length < 3) {
+    return { error: 'El nombre del negocio debe tener al menos 3 caracteres' }
+  }
+  if (!fullName || fullName.trim().length < 3) {
+    return { error: 'Tu nombre completo debe tener al menos 3 caracteres' }
+  }
+
+  // Determine a default tone prompt based on selected business type
+  const { data: btype } = await supabase
+    .from('business_types')
+    .select('name')
+    .eq('id', businessTypeId)
+    .single()
+
+  let tone_prompt = 'Sé amable y profesional.'
+  if (btype?.name === 'lawfirm') {
+    tone_prompt = 'Sé sumamente profesional, empático y claro. Enfatiza que la asesoría definitiva requiere una cita formal.'
+  } else if (btype?.name === 'restaurant') {
+    tone_prompt = 'Sé amigable, rápido y servicial. Ayuda al comensal a armar su pedido y confirma cantidades de forma clara.'
+  } else {
+    tone_prompt = 'Sé empático, cálido y profesional. Ayuda al paciente a resolver sus dudas y confirma sus datos antes de agendar.'
+  }
+
+  const { error } = await supabase
+    .from('professionals')
+    .update({
+      business_type_id: businessTypeId,
+      clinic_name: clinicName.trim(),
+      full_name: fullName.trim(),
+      tone_prompt,
+      business_config: btype?.name === 'restaurant' ? { menu: [], orders_notification_phone: '' } : { modalities: ['Presencial'] }
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    return { error: 'Error al guardar la configuración inicial: ' + error.message }
+  }
+
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+
 
 /**
  * Uploads a profile avatar image to Supabase Storage and updates the professional's avatar_url.

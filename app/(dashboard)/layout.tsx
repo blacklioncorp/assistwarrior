@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   // Fetch professional profile with business type
   const { data: professional } = await supabase
     .from('professionals')
-    .select('full_name, email, specialty, clinic_name, plan, plan_status, is_superadmin, avatar_url, business_type:business_types(name)')
+    .select('full_name, email, specialty, clinic_name, plan, plan_status, is_superadmin, avatar_url, business_type_id, business_type:business_types(name)')
     .eq('id', user.id)
     .single()
 
@@ -32,6 +32,18 @@ export default async function DashboardLayout({
     .select('*', { count: 'exact', head: true })
     .eq('professional_id', user.id)
     .gt('unread_count', 0)
+
+  // Onboarding check: if business_type_id is null, load onboarding layout instead
+  if (professional && !professional.business_type_id) {
+    const { data: btypes } = await supabase
+      .from('business_types')
+      .select('id, name, label, config')
+    
+    const { OnboardingView } = await import('@/components/dashboard/OnboardingView')
+    return (
+      <OnboardingView businessTypes={btypes || []} />
+    )
+  }
 
   const businessTypeName = (professional?.business_type as { name?: string } | null)?.name ?? ''
 
