@@ -1,7 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { updateSettings, savePushSubscription, removePushSubscription, deleteBlockedSlot, uploadAvatar } from '@/app/actions'
+import { useRouter } from 'next/navigation'
+import {
+  updateSettings,
+  savePushSubscription,
+  removePushSubscription,
+  deleteBlockedSlot,
+  uploadAvatar,
+  connectIntegration,
+  disconnectIntegration,
+  uploadMenuImage
+} from '@/app/actions'
 import { SubmitButton } from '@/components/ui/submit-button'
 import {
   User,
@@ -26,9 +36,19 @@ import {
   Image as ImageIcon,
   UtensilsCrossed,
   X,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewBlockedSlotModal } from '@/components/dashboard/modals/NewBlockedSlotModal'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface BlockedSlot {
   id: string
@@ -65,6 +85,7 @@ interface SettingsClientProps {
     tone_prompt?: string | null
     avatar_url?: string | null
     business_config?: Record<string, unknown> | null
+    whatsapp_phone_number_id?: string | null
   }
   initialBlockedSlots: BlockedSlot[]
   businessTypeName?: string
@@ -78,8 +99,8 @@ const allIntegrations = [
     description: 'Recibe y responde mensajes automáticamente desde WhatsApp.',
     icon: MessageSquare,
     color: 'text-green-400 bg-green-950/30 border border-green-900/30',
-    connectedKey: null as null | string,
-    alwaysConnected: true,
+    connectedKey: 'whatsapp_phone_number_id',
+    alwaysConnected: false,
     visibleFor: ['all'],
   },
   {
@@ -90,17 +111,17 @@ const allIntegrations = [
     color: 'text-blue-400 bg-blue-950/30 border border-blue-900/30',
     connectedKey: 'voice_enabled',
     alwaysConnected: false,
-    visibleFor: ['clinic', 'lawfirm'],
+    visibleFor: ['all'],
   },
   {
     id: 'google_calendar',
     name: 'Google Calendar',
-    description: 'Sincroniza las citas automáticamente con tu calendario.',
+    description: 'Sincroniza tu agenda automáticamente con tu calendario.',
     icon: Calendar,
     color: 'text-red-400 bg-red-950/30 border border-red-900/30',
     connectedKey: 'google_calendar_connected',
     alwaysConnected: false,
-    visibleFor: ['clinic', 'lawfirm'],
+    visibleFor: ['all'],
   },
   {
     id: 'calcom',
@@ -110,7 +131,7 @@ const allIntegrations = [
     color: 'text-purple-400 bg-purple-950/30 border border-purple-900/30',
     connectedKey: 'calcom_api_key',
     alwaysConnected: false,
-    visibleFor: ['clinic', 'lawfirm'],
+    visibleFor: ['all'],
   },
 ]
 
@@ -139,6 +160,7 @@ function formatBlockedRange(slot: BlockedSlot): string {
 }
 
 export function SettingsClient({ professional, initialBlockedSlots, businessTypeName = '' }: SettingsClientProps) {
+  const router = useRouter()
   const isRestaurant = businessTypeName === 'restaurant'
   const isLawFirm = businessTypeName === 'lawfirm'
   const verticalKey = isRestaurant ? 'restaurant' : isLawFirm ? 'lawfirm' : 'clinic'
@@ -161,6 +183,22 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [blockedError, setBlockedError] = useState<string | null>(null)
 
+  // Integrations state (hydrated from DB but updated locally for instant visual sync)
+  const [integrationsState, setIntegrationsState] = useState({
+    google_calendar_connected: professional.google_calendar_connected,
+    calcom_api_key: professional.calcom_api_key,
+    voice_enabled: professional.voice_enabled,
+    voice_phone_number: professional.voice_phone_number,
+    whatsapp_phone_number_id: professional.whatsapp_phone_number_id,
+  })
+
+  // Modal control states
+  const [activeIntegrationModal, setActiveIntegrationModal] = useState<string | null>(null)
+  const [modalInputVal, setModalInputVal] = useState('')
+  const [modalPhoneVal, setModalPhoneVal] = useState('')
+  const [modalLoading, setModalLoading] = useState(false)
+  const [modalError, setModalError] = useState<string | null>(null)
+
   // Modalities (law firm)
   const [modalities, setModalities] = useState<string[]>(
     (professional.business_config?.modalities as string[] | undefined) ?? []
@@ -169,9 +207,28 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
   // Menu state (restaurant)
   const existingMenu = (professional.business_config?.menu as MenuCategory[] | undefined) ?? []
   const [menuCategories, setMenuCategories] = useState<MenuCategory[]>(existingMenu)
-  const [menuImageUrl] = useState<string>(
+  const [menuImageUrl, setMenuImageUrl] = useState<string>(
     (professional.business_config?.menu_image_url as string | undefined) ?? ''
   )
+  const [menuImageUploading, setMenuImageUploading] = useState(false)
+
+  async function handleMenuImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setMenuImageUploading(true)
+    setError(null)
+    const formData = new FormData()
+    formData.append('menu_image', file)
+    const res = await uploadMenuImage(formData)
+    if (res.error) {
+      setError(res.error)
+    } else if (res.success && res.menu_image_url) {
+      setMenuImageUrl(res.menu_image_url)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    }
+    setMenuImageUploading(false)
+  }
   const [menuSaving, setMenuSaving] = useState(false)
 
   useEffect(() => {
@@ -263,8 +320,95 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
   function isConnected(integration: typeof allIntegrations[0]): boolean {
     if (integration.alwaysConnected) return true
     if (!integration.connectedKey) return false
-    const val = professional[integration.connectedKey as keyof typeof professional]
+    const val = integrationsState[integration.connectedKey as keyof typeof integrationsState]
     return !!val
+  }
+
+  async function handleConnect(integrationId: string, value?: string) {
+    setModalLoading(true)
+    setModalError(null)
+    try {
+      const res = await connectIntegration(integrationId, value)
+      if (res.error) {
+        setModalError(res.error)
+      } else {
+        setIntegrationsState(prev => {
+          const next = { ...prev }
+          if (integrationId === 'google_calendar') next.google_calendar_connected = true
+          else if (integrationId === 'calcom') next.calcom_api_key = value
+          else if (integrationId === 'voice') {
+            next.voice_enabled = true
+            next.voice_phone_number = value
+          } else if (integrationId === 'whatsapp') {
+            next.whatsapp_phone_number_id = value
+          }
+          return next
+        })
+        setActiveIntegrationModal(null)
+        router.refresh()
+      }
+    } catch (err: any) {
+      setModalError(err.message || 'Error al conectar la integración')
+    } finally {
+      setModalLoading(false)
+    }
+  }
+
+  async function handleDisconnect(integrationId: string) {
+    setModalLoading(true)
+    setModalError(null)
+    try {
+      const res = await disconnectIntegration(integrationId)
+      if (res.error) {
+        setModalError(res.error)
+      } else {
+        setIntegrationsState(prev => {
+          const next = { ...prev }
+          if (integrationId === 'google_calendar') next.google_calendar_connected = false
+          else if (integrationId === 'calcom') next.calcom_api_key = null
+          else if (integrationId === 'voice') {
+            next.voice_enabled = false
+            next.voice_phone_number = null
+          } else if (integrationId === 'whatsapp') {
+            next.whatsapp_phone_number_id = null
+          }
+          return next
+        })
+        setActiveIntegrationModal(null)
+        router.refresh()
+      }
+    } catch (err: any) {
+      setModalError(err.message || 'Error al desconectar la integración')
+    } finally {
+      setModalLoading(false)
+    }
+  }
+
+  // Google Calendar simulated connection animation
+  async function triggerGoogleCalendarSimulation() {
+    setModalLoading(true)
+    setModalError(null)
+    // Wait 1.5s to simulate OAuth popup redirect and sync
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    await handleConnect('google_calendar')
+  }
+
+  // Handle opening of modals when clicked
+  function openIntegrationModal(integration: typeof allIntegrations[0]) {
+    setModalError(null)
+    setModalInputVal('')
+    setModalPhoneVal('')
+    
+    if (integration.id === 'whatsapp') {
+      setModalInputVal(integrationsState.whatsapp_phone_number_id || '')
+      setModalPhoneVal(professional.phone_whatsapp || '')
+    } else if (integration.id === 'calcom') {
+      setModalInputVal(integrationsState.calcom_api_key || '')
+    } else if (integration.id === 'voice') {
+      setModalInputVal(integrationsState.voice_phone_number || '')
+    }
+    
+    setActiveIntegrationModal(integration.id)
   }
 
   async function handleDeleteBlockedSlot(id: string) {
@@ -478,6 +622,7 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
               <DarkField label={labels.specialty} id="specialty" defaultValue={professional.specialty ?? ''} />
             )}
             <DarkField label="Teléfono WhatsApp del negocio" id="phone_whatsapp" defaultValue={professional.phone_whatsapp ?? ''} />
+            <DarkField label="WhatsApp Phone Number ID (Meta)" id="whatsapp_phone_number_id" defaultValue={professional.whatsapp_phone_number_id ?? ''} placeholder="Ej: 1016723024864770" />
             {isRestaurant && (
               <div>
                 <DarkField
@@ -576,9 +721,21 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
               </div>
             )}
             <label className="inline-flex items-center gap-2 text-xs font-medium text-cyan-400 hover:text-cyan-300 cursor-pointer transition-colors">
-              <Plus className="h-3.5 w-3.5" />
-              {menuImageUrl ? 'Cambiar imagen' : 'Subir imagen del menú'}
-              <input type="file" className="hidden" accept="image/jpeg,image/png,application/pdf" />
+              {menuImageUploading ? (
+                <span>Subiendo...</span>
+              ) : (
+                <>
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>{menuImageUrl ? 'Cambiar imagen' : 'Subir imagen del menú'}</span>
+                </>
+              )}
+              <input
+                type="file"
+                className="hidden"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                onChange={handleMenuImageUpload}
+                disabled={menuImageUploading}
+              />
             </label>
           </div>
 
@@ -742,6 +899,7 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
                 <button
                   type="button"
                   id={`integration-${integration.id}-btn`}
+                  onClick={() => openIntegrationModal(integration)}
                   className={cn(
                     'shrink-0 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors',
                     connected
@@ -908,6 +1066,254 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
           </div>
         </div>
       )}
+
+      {/* ── Integration Modals ── */}
+
+      {/* 1. Google Calendar Modal */}
+      <Dialog open={activeIntegrationModal === 'google_calendar'} onOpenChange={(open) => !open && setActiveIntegrationModal(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-red-400" />
+              Integrar Google Calendar
+            </DialogTitle>
+            <DialogDescription>
+              {integrationsState.google_calendar_connected
+                ? 'Tu cuenta de Google Calendar está sincronizada para evitar dobles reservas.'
+                : 'Sincroniza tus citas y reservas en tiempo real con tu calendario personal o de trabajo.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {modalError && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-950/30 border border-red-900/30 p-3 text-xs text-red-400">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <p>{modalError}</p>
+            </div>
+          )}
+
+          <div className="pt-4 flex flex-col gap-3">
+            {integrationsState.google_calendar_connected ? (
+              <button
+                type="button"
+                onClick={() => handleDisconnect('google_calendar')}
+                disabled={modalLoading}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-950/40 border border-red-900/30 px-4 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-950/60 transition-colors disabled:opacity-50"
+              >
+                {modalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Desconectar Calendario'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={triggerGoogleCalendarSimulation}
+                disabled={modalLoading}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white px-4 py-2.5 text-sm font-semibold hover:from-purple-500 hover:to-cyan-400 transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {modalLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Conectando con Google...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4 fill-current mr-1" viewBox="0 0 24 24">
+                      <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.51 0-6.382-2.87-6.382-6.382 0-3.512 2.87-6.382 6.382-6.382 1.5 0 2.87.525 3.975 1.5l3.225-3.225C19.167 1.83 15.96 0 12.24 0 5.48 0 0 5.48 0 12.24s5.48 12.24 12.24 12.24c7.3 0 12.18-5.136 12.18-12.42 0-.825-.075-1.614-.225-2.28H12.24z"/>
+                    </svg>
+                    <span>Conectar con Google</span>
+                  </>
+                )}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setActiveIntegrationModal(null)}
+              className="w-full text-center text-xs text-slate-500 hover:text-slate-400 transition-colors py-1"
+            >
+              Cerrar
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 2. Cal.com Modal */}
+      <Dialog open={activeIntegrationModal === 'calcom'} onOpenChange={(open) => !open && setActiveIntegrationModal(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarCheck className="h-5 w-5 text-purple-400" />
+              Configurar Cal.com
+            </DialogTitle>
+            <DialogDescription>
+              Integra tu agenda con Cal.com para permitir que tus clientes reserven en línea.
+            </DialogDescription>
+          </DialogHeader>
+
+          {modalError && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-950/30 border border-red-900/30 p-3 text-xs text-red-400">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <p>{modalError}</p>
+            </div>
+          )}
+
+          <div className="space-y-4 pt-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="calcom_key">API Key de Cal.com</Label>
+              <Input
+                id="calcom_key"
+                type="password"
+                placeholder="cal_live_..."
+                value={modalInputVal}
+                onChange={(e) => setModalInputVal(e.target.value)}
+                className="bg-[#0F0F1A] border-slate-800 text-white placeholder:text-slate-700"
+              />
+              <p className="text-[10px] text-slate-500">
+                Puedes generar una API Key desde la configuración de desarrollador de tu cuenta de Cal.com.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => handleConnect('calcom', modalInputVal)}
+                disabled={modalLoading || !modalInputVal.trim()}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white px-4 py-2.5 text-sm font-semibold hover:from-purple-500 hover:to-cyan-400 transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {modalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar y Conectar'}
+              </button>
+
+              {integrationsState.calcom_api_key && (
+                <button
+                  type="button"
+                  onClick={() => handleDisconnect('calcom')}
+                  disabled={modalLoading}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-950/40 border border-red-900/30 px-4 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-950/60 transition-colors disabled:opacity-50"
+                >
+                  Desconectar Integración
+                </button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. Llamadas de Voz Modal */}
+      <Dialog open={activeIntegrationModal === 'voice'} onOpenChange={(open) => !open && setActiveIntegrationModal(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Phone className="h-5 w-5 text-blue-400" />
+              Configurar Llamadas de Voz
+            </DialogTitle>
+            <DialogDescription>
+              Vincula tu agente con un número de teléfono de Twilio para que responda llamadas telefónicas automáticamente.
+            </DialogDescription>
+          </DialogHeader>
+
+          {modalError && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-950/30 border border-red-900/30 p-3 text-xs text-red-400">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <p>{modalError}</p>
+            </div>
+          )}
+
+          <div className="space-y-4 pt-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="voice_number">Número de Teléfono (con código de país)</Label>
+              <Input
+                id="voice_number"
+                placeholder="Ej. +525512345678"
+                value={modalInputVal}
+                onChange={(e) => setModalInputVal(e.target.value)}
+                className="bg-[#0F0F1A] border-slate-800 text-white placeholder:text-slate-700"
+              />
+              <p className="text-[10px] text-slate-500">
+                Ingresa el número telefónico asignado en Twilio para recibir y procesar las llamadas.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => handleConnect('voice', modalInputVal)}
+                disabled={modalLoading || !modalInputVal.trim()}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white px-4 py-2.5 text-sm font-semibold hover:from-purple-500 hover:to-cyan-400 transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {modalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Habilitar Agente de Voz'}
+              </button>
+
+              {integrationsState.voice_enabled && (
+                <button
+                  type="button"
+                  onClick={() => handleDisconnect('voice')}
+                  disabled={modalLoading}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-950/40 border border-red-900/30 px-4 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-950/60 transition-colors disabled:opacity-50"
+                >
+                  Desactivar Llamadas de Voz
+                </button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 4. WhatsApp Business Modal */}
+      <Dialog open={activeIntegrationModal === 'whatsapp'} onOpenChange={(open) => !open && setActiveIntegrationModal(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-green-400" />
+              Configurar WhatsApp Business
+            </DialogTitle>
+            <DialogDescription>
+              Configura las credenciales de tu número comercial en Meta para que el bot responda por WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+
+          {modalError && (
+            <div className="flex items-center gap-2 rounded-lg bg-red-950/30 border border-red-900/30 p-3 text-xs text-red-400">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <p>{modalError}</p>
+            </div>
+          )}
+
+          <div className="space-y-4 pt-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="whatsapp_phone_id">WhatsApp Phone Number ID (Meta)</Label>
+              <Input
+                id="whatsapp_phone_id"
+                placeholder="Ej. 1016723024864770"
+                value={modalInputVal}
+                onChange={(e) => setModalInputVal(e.target.value)}
+                className="bg-[#0F0F1A] border-slate-800 text-white placeholder:text-slate-700"
+              />
+              <p className="text-[10px] text-slate-500">
+                El identificador numérico de 15 dígitos proporcionado por Meta Developer console.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => handleConnect('whatsapp', modalInputVal)}
+                disabled={modalLoading || !modalInputVal.trim()}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 text-white px-4 py-2.5 text-sm font-semibold hover:from-purple-500 hover:to-cyan-400 transition-all active:scale-[0.98] disabled:opacity-50"
+              >
+                {modalLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Configuración'}
+              </button>
+
+              {integrationsState.whatsapp_phone_number_id && (
+                <button
+                  type="button"
+                  onClick={() => handleDisconnect('whatsapp')}
+                  disabled={modalLoading}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-950/40 border border-red-900/30 px-4 py-2.5 text-sm font-semibold text-red-400 hover:bg-red-950/60 transition-colors disabled:opacity-50"
+                >
+                  Desconectar WhatsApp
+                </button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

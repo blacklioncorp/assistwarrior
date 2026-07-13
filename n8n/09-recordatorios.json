@@ -21,7 +21,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  c.id as cita_id,\n  c.lead_id,\n  c.client_name,\n  c.telefono,\n  c.fecha,\n  c.hora_inicio,\n  c.estado,\n  a.meta_phone_number_id as abogado_phone_number_id,\n  a.meta_access_token as abogado_access_token,\n  a.nombre as abogado_nombre,\n  a.nombre_despacho\nFROM citas c\nJOIN abogados a ON c.abogado_id = a.id\nWHERE c.estado = 'agendada'\n  AND c.recordatorio_enviado = FALSE\n  AND (c.fecha::TEXT || 'T' || c.hora_inicio)::TIMESTAMP BETWEEN NOW() + INTERVAL '55 minutes' AND NOW() + INTERVAL '65 minutes'\nLIMIT 50;",
+        "query": "SELECT\n  c.id as cita_id,\n  c.patient_id as lead_id,\n  c.patient_name as client_name,\n  c.patient_phone as telefono,\n  TO_CHAR(c.starts_at AT TIME ZONE p.timezone, 'HH24:MI') as hora_inicio,\n  c.status as estado,\n  p.whatsapp_phone_number_id as abogado_phone_number_id,\n  p.full_name as abogado_nombre,\n  p.clinic_name as nombre_despacho\nFROM public.appointments c\nJOIN public.professionals p ON c.professional_id = p.id\nWHERE c.status = 'scheduled'\n  AND c.reminder_sent = FALSE\n  AND c.starts_at BETWEEN NOW() + INTERVAL '50 minutes' AND NOW() + INTERVAL '70 minutes'\nLIMIT 50;",
         "options": {}
       },
       "id": "sw09-get-upcoming",
@@ -75,7 +75,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE citas\nSET recordatorio_enviado = TRUE\nWHERE id = '{{ $json.cita_id }}';",
+        "query": "UPDATE public.appointments\nSET reminder_sent = TRUE\nWHERE id = '{{ $json.cita_id }}';",
         "options": {}
       },
       "id": "sw09-mark-sent",

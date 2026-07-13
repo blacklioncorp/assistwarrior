@@ -35,6 +35,9 @@ const settingsSchema = z.object({
   specialty: z.string().optional(),
   phone_whatsapp: z.string().optional(),
   tone_prompt: z.string().optional(),
+  whatsapp_phone_number_id: z.string().optional(),
+  voice_phone_number: z.string().optional(),
+  voice_enabled: z.boolean().optional(),
 })
 
 // ── Actions ──
@@ -407,6 +410,7 @@ export async function updateSettings(prevState: unknown, formData: FormData) {
     specialty: formData.get('specialty'),
     phone_whatsapp: formData.get('phone_whatsapp'),
     tone_prompt: formData.get('tone_prompt'),
+    whatsapp_phone_number_id: formData.get('whatsapp_phone_number_id'),
   })
 
   if (!validatedFields.success) {
@@ -813,3 +817,169 @@ export async function getBlockedSlots(professionalId: string) {
 
   return data || []
 }
+
+/**
+ * Connects a specific integration (google_calendar, calcom, voice, etc.)
+ */
+export async function connectIntegration(integrationId: string, value?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  let updatePayload: Record<string, any> = {}
+
+  if (integrationId === 'google_calendar') {
+    updatePayload = { google_calendar_connected: true }
+  } else if (integrationId === 'calcom') {
+    if (!value) return { error: 'Se requiere la API Key de Cal.com' }
+    updatePayload = { calcom_api_key: value }
+  } else if (integrationId === 'voice') {
+    if (!value) return { error: 'Se requiere el número de teléfono para llamadas por voz' }
+    updatePayload = { voice_enabled: true, voice_phone_number: value }
+  } else if (integrationId === 'whatsapp') {
+    if (!value) return { error: 'Se requiere el Phone Number ID de WhatsApp' }
+    updatePayload = { whatsapp_phone_number_id: value }
+  } else {
+    return { error: 'Integración no soportada' }
+  }
+
+  const { error } = await supabase
+    .from('professionals')
+    .update(updatePayload)
+    .eq('id', user.id)
+
+  if (error) return { error: 'Error al conectar la integración: ' + error.message }
+
+  // Log activity
+  await supabase.from('activity_log').insert({
+    professional_id: user.id,
+    type: 'new_patient', // Generic or we can use another string
+    title: `Integración conectada`,
+    description: `Se conectó la integración con ${integrationId}`,
+  })
+
+  revalidatePath('/dashboard/settings')
+  return { success: true }
+}
+
+/**
+ * Disconnects a specific integration
+ */
+export async function disconnectIntegration(integrationId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  let updatePayload: Record<string, any> = {}
+
+  if (integrationId === 'google_calendar') {
+    updatePayload = { google_calendar_connected: false }
+  } else if (integrationId === 'calcom') {
+    updatePayload = { calcom_api_key: null }
+  } else if (integrationId === 'voice') {
+    updatePayload = { voice_enabled: false, voice_phone_number: null }
+  } else if (integrationId === 'whatsapp') {
+    updatePayload = { whatsapp_phone_number_id: null }
+  } else {
+    return { error: 'Integración no soportada' }
+  }
+
+  const { error } = await supabase
+    .from('professionals')
+    .update(updatePayload)
+    .eq('id', user.id)
+
+  if (error) return { error: 'Error al desconectar la integración: ' + error.message }
+
+  // Log activity
+  await supabase.from('activity_log').insert({
+    professional_id: user.id,
+    type: 'new_patient',
+    title: `Integración desconectada`,
+    description: `Se desconectó la integración con ${integrationId}`,
+  })
+
+  revalidatePath('/dashboard/settings')
+  return { success: true }
+}
+
+/**
+ * Uploads a restaurant menu image to Supabase Storage and updates the professional's business_config.
+ */
+export async function uploadMenuImage(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  const file = formData.get('menu_image') as File
+  if (!file || file.size === 0) return { error: 'No se seleccionó ningún archivo' }
+
+  // Validate file type (allowing pdf, jpg, png, webp, gif)
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
+  if (!allowedTypes.includes(file.type)) {
+    return { error: 'Formato no soportado. Usa JPG, PNG, WebP o PDF.' }
+  }
+
+  // Max 5MB
+  if (file.size > 5 * 1024 * 1024) {
+    return { error: 'La imagen del menú no debe pesar más de 5MB.' }
+  }
+
+  const ext = file.name.split('.').pop() || 'jpg'
+  const filePath = `${user.id}/menu.${ext}`
+
+  // Ensure 'menus' bucket exists
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+    const { data: buckets } = await adminSupabase.storage.listBuckets()
+    if (!buckets || !buckets.find(b => b.name === 'menus')) {
+      await adminSupabase.storage.createBucket('menus', { public: true })
+    }
+  } catch (e) {
+    console.error('Error checking/creating menus bucket:', e)
+  }
+
+  // Upload to Supabase Storage (bucket: menus)
+  const { error: uploadError } = await supabase.storage
+    .from('menus')
+    .upload(filePath, file, {
+      upsert: true,
+      contentType: file.type,
+    })
+
+  if (uploadError) {
+    return { error: 'Error al subir imagen del menú: ' + uploadError.message }
+  }
+
+  // Get public URL
+  const { data: publicUrlData } = supabase.storage
+    .from('menus')
+    .getPublicUrl(filePath)
+
+  const menu_image_url = publicUrlData.publicUrl
+
+  // Fetch existing business_config to merge
+  const { data: existing } = await supabase
+    .from('professionals')
+    .select('business_config')
+    .eq('id', user.id)
+    .single()
+
+  const currentConfig = (existing?.business_config as Record<string, unknown>) ?? {}
+  const newConfig = { ...currentConfig, menu_image_url }
+
+  // Update professional record
+  const { error: updateError } = await supabase
+    .from('professionals')
+    .update({ business_config: newConfig })
+    .eq('id', user.id)
+
+  if (updateError) {
+    return { error: 'Error al guardar URL del menú: ' + updateError.message }
+  }
+
+  revalidatePath('/dashboard/settings')
+  return { success: true, menu_image_url }
+}
+
