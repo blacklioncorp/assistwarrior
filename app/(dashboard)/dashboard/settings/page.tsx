@@ -18,7 +18,7 @@ export default async function SettingsPage() {
   ] = await Promise.all([
     supabase
       .from('professionals')
-      .select('id, full_name, email, specialty, clinic_name, phone_whatsapp, google_calendar_connected, calcom_api_key, voice_enabled, voice_phone_number, working_hours, tone_prompt, avatar_url, business_config, business_type:business_types(name)')
+      .select('id, full_name, email, specialty, clinic_name, phone_whatsapp, google_calendar_connected, calcom_api_key, voice_enabled, voice_phone_number, whatsapp_phone_number_id, working_hours, tone_prompt, avatar_url, business_config, business_type:business_types(name)')
       .eq('id', user.id)
       .single(),
     supabase
