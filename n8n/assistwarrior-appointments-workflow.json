@@ -1,4 +1,4 @@
-[{
+{
   "name": "WhatsApp - Asistente Virtual Médico",
   "nodes": [
     {
@@ -849,4 +849,4 @@
       "main": [[ { "node": "Guardar encuesta", "type": "main", "index": 0 } ]]
     }
   }
-}]
+}
