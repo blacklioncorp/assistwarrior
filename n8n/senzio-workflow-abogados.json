@@ -264,7 +264,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://assistwarrior-two.vercel.app/api/n8n/appointments",
+        "url": "https://www.senz-io.com/api/n8n/appointments",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
