@@ -191,6 +191,14 @@
             {
               "value2": "legal",
               "output": 1
+            },
+            {
+              "value2": "medical",
+              "output": 2
+            },
+            {
+              "value2": "doctor",
+              "output": 2
             }
           ]
         }
@@ -220,6 +228,16 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1,
       "position": [1750, 400]
+    },
+    {
+      "parameters": {
+        "workflowId": "medical-workflow-id"
+      },
+      "id": "node-exec-medical",
+      "name": "Execute Medical Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [1750, 600]
     }
   ],
   "connections": {
@@ -336,6 +354,13 @@
         [
           {
             "node": "Execute Lawyers Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Medical Workflow",
             "type": "main",
             "index": 0
           }

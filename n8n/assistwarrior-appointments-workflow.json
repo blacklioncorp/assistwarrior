@@ -2,22 +2,16 @@
   "name": "WhatsApp - Asistente Virtual Médico",
   "nodes": [
     {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "whatsapp",
-        "responseMode": "lastNode",
-        "options": {}
-      },
-      "id": "node-1",
-      "name": "WhatsApp Trigger",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [250, 300],
-      "webhookId": "whatsapp-trigger"
+      "parameters": {},
+      "id": "node-subworkflow-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
     },
     {
       "parameters": {
-        "jsCode": "const msg = $input.item.json;\nconst entry = msg.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\n\nreturn {\n  phone: message?.from,\n  message: message?.text?.body,\n  businessPhoneId: value?.metadata?.phone_number_id,\n  messageId: message?.id\n};"
+        "jsCode": "const inputData = $('Execute Workflow Trigger').item.json;\nreturn [{\n  json: {\n    phone: inputData.phone,\n    message: inputData.message,\n    businessPhoneId: inputData.businessPhoneId,\n    displayPhoneNumber: inputData.displayPhoneNumber,\n    messageId: inputData.messageId\n  }\n}];"
       },
       "id": "node-2",
       "name": "Extraer datos del mensaje",
@@ -27,28 +21,13 @@
     },
     {
       "parameters": {
-        "operation": "select",
-        "table": "professionals",
-        "columns": "*",
-        "filters": {
-          "conditions": [
-            {
-              "field": "whatsapp_phone_number_id",
-              "operator": "eq",
-              "value": "={{ $json.businessPhoneId }}"
-            }
-          ]
-        },
-        "limit": 1
+        "jsCode": "return [{ json: $('Execute Workflow Trigger').item.json.professional }];"
       },
       "id": "node-3",
       "name": "Buscar profesional",
-      "type": "n8n-nodes-base.supabase",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [650, 300],
-      "credentials": {
-        "supabaseApi": "Supabase"
-      }
+      "position": [650, 300]
     },
     {
       "parameters": {
@@ -744,84 +723,10 @@
       "credentials": {
         "supabaseApi": "Supabase"
       }
-    },
-    {
-      "parameters": {
-        "httpMethod": "GET",
-        "path": "whatsapp",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "id": "node-get-webhook",
-      "name": "WhatsApp Webhook (Verification)",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [250, 100]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.query['hub.verify_token'] }}",
-              "operation": "equal",
-              "value2": "senzio_token"
-            }
-          ]
-        }
-      },
-      "id": "node-verify-token",
-      "name": "Is Token Valid?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [450, 100]
-    },
-    {
-      "parameters": {
-        "respondWith": "text",
-        "responseBody": "={{ $json.query['hub.challenge'] }}",
-        "options": {
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Content-Type",
-                "value": "text/plain"
-              }
-            ]
-          }
-        }
-      },
-      "id": "node-respond-challenge",
-      "name": "Respond with Challenge",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [650, 50]
-    },
-    {
-      "parameters": {
-        "respondWith": "text",
-        "responseBody": "Forbidden: Verification token mismatch",
-        "options": {
-          "responseCode": 403,
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Content-Type",
-                "value": "text/plain"
-              }
-            ]
-          }
-        }
-      },
-      "id": "node-respond-forbidden",
-      "name": "Respond with Forbidden",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [650, 150]
     }
   ],
   "connections": {
-    "WhatsApp Trigger": {
+    "Execute Workflow Trigger": {
       "main": [[ { "node": "Extraer datos del mensaje", "type": "main", "index": 0 } ]]
     },
     "Extraer datos del mensaje": {
@@ -942,35 +847,6 @@
     },
     "Encuesta de satisfacción": {
       "main": [[ { "node": "Guardar encuesta", "type": "main", "index": 0 } ]]
-    },
-    "WhatsApp Webhook (Verification)": {
-      "main": [
-        [
-          {
-            "node": "Is Token Valid?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Is Token Valid?": {
-      "main": [
-        [
-          {
-            "node": "Respond with Challenge",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Respond with Forbidden",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     }
   }
 }]
