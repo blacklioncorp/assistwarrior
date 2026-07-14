@@ -1,0 +1,350 @@
+{
+  "name": "Senzio - Webhook Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "senz-io-router",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-get-webhook",
+      "name": "WhatsApp Webhook (Verification)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.query['hub.verify_token'] }}",
+              "operation": "equal",
+              "value2": "senzio_token"
+            }
+          ]
+        }
+      },
+      "id": "node-verify-token",
+      "name": "Is Token Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [300, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-challenge",
+      "name": "Respond with Challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [500, 50]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "senz-io-router",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-post-webhook",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "EVENT_RECEIVED",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/plain"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-event",
+      "name": "Respond Event Received",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.item.json.body;\nconst entry = body.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\nconst metadata = value?.metadata;\n\nif (!message) {\n  return [{ json: { skip: true, reason: 'no_message' } }];\n}\n\nif (message.type !== 'text') {\n  return [{ json: { skip: true, reason: 'non_text' } }];\n}\n\nreturn [{\n  json: {\n    skip: false,\n    phone: message.from,\n    message: message.text?.body,\n    businessPhoneId: metadata?.phone_number_id,\n    displayPhoneNumber: metadata?.display_phone_number,\n    messageId: message.id\n  }\n}];"
+      },
+      "id": "node-extract-wa",
+      "name": "Extract WhatsApp Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.skip }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-skip-check",
+      "name": "Skip?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableId": "professionals",
+        "returnAll": true,
+        "select": "*, business_types(config, name)",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "whatsapp_phone_number_id",
+              "condition": "eq",
+              "keyValue": "={{ $node[\"Extract WhatsApp Data\"].json.businessPhoneId }}"
+            }
+          ]
+        }
+      },
+      "id": "node-get-professional",
+      "name": "Get Professional Config",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [900, 300],
+      "credentials": {
+        "supabaseApi": "Supabase account"
+      },
+      "settings": {
+        "alwaysOutputData": true
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id }}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "id": "node-verify-professional",
+      "name": "Professional Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const messageData = $('Extract WhatsApp Data').first().json;\nconst professional = $input.item.json;\n\nreturn [{\n  json: {\n    phone: messageData.phone,\n    message: messageData.message,\n    businessPhoneId: messageData.businessPhoneId,\n    displayPhoneNumber: messageData.displayPhoneNumber,\n    messageId: messageData.messageId,\n    professional: professional\n  }\n}];"
+      },
+      "id": "node-build-payload",
+      "name": "Build Clean Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.professional.business_types.name }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "restaurant",
+              "output": 0
+            },
+            {
+              "value2": "commerce",
+              "output": 0
+            },
+            {
+              "value2": "lawyer",
+              "output": 1
+            },
+            {
+              "value2": "legal",
+              "output": 1
+            }
+          ]
+        }
+      },
+      "id": "node-router",
+      "name": "Route by Business Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "workflowId": "restaurant-workflow-id"
+      },
+      "id": "node-exec-restaurant",
+      "name": "Execute Restaurant Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [1750, 200]
+    },
+    {
+      "parameters": {
+        "workflowId": "abogados-workflow-id"
+      },
+      "id": "node-exec-lawyers",
+      "name": "Execute Lawyers Workflow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [1750, 400]
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook (Verification)": {
+      "main": [
+        [
+          {
+            "node": "Is Token Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Token Valid?": {
+      "main": [
+        [
+          {
+            "node": "Respond with Challenge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond Event Received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond Event Received": {
+      "main": [
+        [
+          {
+            "node": "Extract WhatsApp Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract WhatsApp Data": {
+      "main": [
+        [
+          {
+            "node": "Skip?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip?": {
+      "main": [
+        null,
+        [
+          {
+            "node": "Get Professional Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Professional Config": {
+      "main": [
+        [
+          {
+            "node": "Professional Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Professional Found?": {
+      "main": [
+        null,
+        [
+          {
+            "node": "Build Clean Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Clean Payload": {
+      "main": [
+        [
+          {
+            "node": "Route by Business Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Business Type": {
+      "main": [
+        [
+          {
+            "node": "Execute Restaurant Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Lawyers Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

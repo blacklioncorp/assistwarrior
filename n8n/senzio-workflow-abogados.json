@@ -2,134 +2,12 @@
   "name": "Senzio - Despacho de Abogados",
   "nodes": [
     {
-      "parameters": {
-        "httpMethod": "GET",
-        "path": "whatsapp-abogados",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "id": "node-get-webhook",
-      "name": "WhatsApp Webhook (Verification)",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [250, 100]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.query['hub.verify_token'] }}",
-              "operation": "equal",
-              "value2": "senzio_token"
-            }
-          ]
-        }
-      },
-      "id": "node-verify-token",
-      "name": "Is Token Valid?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [450, 100]
-    },
-    {
-      "parameters": {
-        "respondWith": "text",
-        "responseBody": "={{ $json.query['hub.challenge'] }}",
-        "options": {
-          "responseHeaders": {
-            "entries": [{ "name": "Content-Type", "value": "text/plain" }]
-          }
-        }
-      },
-      "id": "node-respond-challenge",
-      "name": "Respond with Challenge",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [650, 50]
-    },
-    {
-      "parameters": {
-        "respondWith": "text",
-        "responseBody": "Forbidden: Verification token mismatch",
-        "options": {
-          "responseCode": 403,
-          "responseHeaders": {
-            "entries": [{ "name": "Content-Type", "value": "text/plain" }]
-          }
-        }
-      },
-      "id": "node-respond-forbidden",
-      "name": "Respond with Forbidden",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [650, 150]
-    },
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "whatsapp-abogados",
-        "responseMode": "onReceived",
-        "options": {}
-      },
-      "id": "node-1",
-      "name": "WhatsApp Webhook",
-      "type": "n8n-nodes-base.webhook",
+      "parameters": {},
+      "id": "node-subworkflow-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
       "position": [250, 320]
-    },
-    {
-      "parameters": {
-        "jsCode": "const body = $input.item.json.body;\nconst entry = body.entry?.[0];\nconst change = entry?.changes?.[0];\nconst value = change?.value;\nconst message = value?.messages?.[0];\nconst metadata = value?.metadata;\n\n// Ignorar status updates (delivered, read)\nif (!message) {\n  return [{ json: { skip: true } }];\n}\n\n// Solo procesar mensajes de texto\nif (message.type !== 'text') {\n  return [{ json: { skip: true, reason: 'non_text' } }];\n}\n\nreturn [{\n  json: {\n    skip: false,\n    phone: message.from,\n    message: message.text?.body,\n    businessPhoneId: metadata?.phone_number_id,\n    displayPhoneNumber: metadata?.display_phone_number,\n    messageId: message.id\n  }\n}];"
-      },
-      "id": "node-2",
-      "name": "Extract WhatsApp Data",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [450, 320]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{ $json.skip }}",
-              "value2": true
-            }
-          ]
-        }
-      },
-      "id": "node-skip-check",
-      "name": "Skip?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [650, 320]
-    },
-    {
-      "parameters": {
-        "resource": "row",
-        "operation": "getAll",
-        "tableId": "professionals",
-        "returnAll": true,
-        "select": "*, business_types(config, name)",
-        "matchType": "any",
-        "match": {
-          "matchValues": [
-            {
-              "keyName": "whatsapp_phone_number_id",
-              "keyValue": "={{ $('Extract WhatsApp Data').item.json.businessPhoneId }}"
-            }
-          ]
-        }
-      },
-      "id": "node-3",
-      "name": "Get Professional Config",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [850, 320],
-      "credentials": {
-        "supabaseApi": "Supabase account"
-      }
     },
     {
       "parameters": {
@@ -142,11 +20,11 @@
           "matchValues": [
             {
               "keyName": "phone_whatsapp",
-              "keyValue": "={{ $('Extract WhatsApp Data').item.json.phone }}"
+              "keyValue": "={{ $json.phone }}"
             },
             {
               "keyName": "professional_id",
-              "keyValue": "={{ $('Get Professional Config').item.json.id }}"
+              "keyValue": "={{ $json.professional.id }}"
             }
           ]
         }
@@ -188,7 +66,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Construir historial de conversación para OpenAI\nconst messages = $input.all();\nconst professional = $('Get Professional Config').item.json;\nconst patient = $('Get Patient History').item?.json || {};\nconst incoming = $('Extract WhatsApp Data').item.json;\n\nconst businessName = professional.full_name || 'el despacho';\nconst businessConfig = professional.business_config || {};\nconst btConfig = professional.business_types?.config || {};\n\n// Bugfix: Extract names/descriptions from custom fields object array\nconst customFields = btConfig.custom_fields || [];\nconst areas = customFields.map(f => f.description || f.name);\nif (areas.length === 0) {\n  areas.push('área del derecho', 'descripción del caso', 'modalidad');\n}\n\nconst tono = businessConfig.ai_tone || 'profesional, empático y claro';\nconst modalities = businessConfig.modalities || ['Presencial', 'Videollamada', 'Llamada telefónica'];\n\nconst systemPrompt = `Eres el asistente virtual del despacho de abogados \"${businessName}\".\\nTu objetivo es atender al cliente, entender su caso jurídico y agendar una consulta si aplica.\\n\\nTono: ${tono}\\n\\nINSTRUCCIONES:\\n1. Saluda al cliente por su nombre si lo conoces.\\n2. Pregunta de forma conversacional por: ${areas.join(', ')}.\\n3. Modalidades disponibles para la consulta: ${modalities.join(', ')}.\\n4. Cuando tengas nombre, fecha/hora preferida, área del derecho, descripción breve y modalidad → ejecuta la función Schedule_Legal_Consultation.\\n5. Si el cliente hace preguntas de asesoría legal, responde orientativamente pero SIEMPRE agrega: \"Esta información es orientativa. La evaluación definitiva de tu caso requiere una consulta formal con el abogado.\"\\n6. NUNCA des opiniones jurídicas definitivas sobre casos específicos.\\n7. Responde siempre en español.\\n8. Sé conciso — máximo 3 oraciones por respuesta.`;\n\n// Construir historial previo ordenado cronológicamente\nconst sortedMessages = [...messages]\n  .filter(m => m.json && m.json.content)\n  .sort((a, b) => new Date(a.json.created_at).getTime() - new Date(b.json.created_at).getTime());\n\nconst historial = sortedMessages.map(m => ({\n  role: m.json.sender === 'user' ? 'user' : 'assistant',\n  content: m.json.content\n}));\n\nconst openaiMessages = [\n  { role: 'system', content: systemPrompt },\n  ...historial,\n  { role: 'user', content: incoming.message }\n];\n\nreturn [{\n  json: {\n    openaiMessages,\n    professional,\n    patient,\n    incoming\n  }\n}];"
+        "jsCode": "// Construir historial de conversación para OpenAI\nconst messages = $input.all();\nconst professional = $('Execute Workflow Trigger').item.json.professional;\nconst patient = $('Get Patient History').item?.json || {};\nconst incoming = $('Execute Workflow Trigger').item.json;\n\nconst businessName = professional.full_name || 'el despacho';\nconst businessConfig = professional.business_config || {};\nconst btConfig = professional.business_types?.config || {};\n\n// Bugfix: Extract names/descriptions from custom fields object array\nconst customFields = btConfig.custom_fields || [];\nconst areas = customFields.map(f => f.description || f.name);\nif (areas.length === 0) {\n  areas.push('área del derecho', 'descripción del caso', 'modalidad');\n}\n\nconst tono = businessConfig.ai_tone || 'profesional, empático y claro';\nconst modalities = businessConfig.modalities || ['Presencial', 'Videollamada', 'Llamada telefónica'];\n\nconst systemPrompt = `Eres el asistente virtual del despacho de abogados \"${businessName}\".\\nTu objetivo es atender al cliente, entender su caso jurídico y agendar una consulta si aplica.\\n\\nTono: ${tono}\\n\\nINSTRUCCIONES:\\n1. Saluda al cliente por su nombre si lo conoces.\\n2. Pregunta de forma conversacional por: ${areas.join(', ')}.\\n3. Modalidades disponibles para la consulta: ${modalities.join(', ')}.\\n4. Cuando tengas nombre, fecha/hora preferida, área del derecho, descripción breve y modalidad → ejecuta la función Schedule_Legal_Consultation.\\n5. Si el cliente hace preguntas de asesoría legal, responde orientativamente pero SIEMPRE agrega: \"Esta información es orientativa. La evaluación definitiva de tu caso requiere una consulta formal con el abogado.\"\\n6. NUNCA des opiniones jurídicas definitivas sobre casos específicos.\\n7. Responde siempre en español.\\n8. Sé conciso — máximo 3 oraciones por respuesta.`;\n\n// Construir historial previo ordenado cronológicamente\nconst sortedMessages = [...messages]\n  .filter(m => m.json && m.json.content)\n  .sort((a, b) => new Date(a.json.created_at).getTime() - new Date(b.json.created_at).getTime());\n\nconst historial = sortedMessages.map(m => ({\n  role: m.json.sender === 'user' ? 'user' : 'assistant',\n  content: m.json.content\n}));\n\nconst openaiMessages = [\n  { role: 'system', content: systemPrompt },\n  ...historial,\n  { role: 'user', content: incoming.message }\n];\n\nreturn [{\n  json: {\n    openaiMessages,\n    professional,\n    patient,\n    incoming\n  }\n}];"
       },
       "id": "node-build-prompt",
       "name": "Build Legal Prompt",
@@ -333,28 +211,7 @@
     }
   ],
   "connections": {
-    "WhatsApp Webhook (Verification)": {
-      "main": [[{ "node": "Is Token Valid?", "type": "main", "index": 0 }]]
-    },
-    "Is Token Valid?": {
-      "main": [
-        [{ "node": "Respond with Challenge", "type": "main", "index": 0 }],
-        [{ "node": "Respond with Forbidden", "type": "main", "index": 0 }]
-      ]
-    },
-    "WhatsApp Webhook": {
-      "main": [[{ "node": "Extract WhatsApp Data", "type": "main", "index": 0 }]]
-    },
-    "Extract WhatsApp Data": {
-      "main": [[{ "node": "Skip?", "type": "main", "index": 0 }]]
-    },
-    "Skip?": {
-      "main": [
-        [],
-        [{ "node": "Get Professional Config", "type": "main", "index": 0 }]
-      ]
-    },
-    "Get Professional Config": {
+    "Execute Workflow Trigger": {
       "main": [[{ "node": "Get Patient History", "type": "main", "index": 0 }]]
     },
     "Get Patient History": {
