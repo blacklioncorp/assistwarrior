@@ -62,12 +62,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Lo sentimos, este servicio no está disponible temporalmente. Por favor contacta directamente al consultorio.\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Lo sentimos, este servicio no está disponible temporalmente. Por favor contacta directamente al consultorio.\"\n  }\n}",
         "options": {}
       },
       "id": "node-3c",
@@ -97,7 +97,7 @@
             {
               "field": "phone_whatsapp",
               "operator": "eq",
-              "value": "={{ $('Extraer datos del mensaje').item.json.phone }}"
+              "value": "={{ $('Execute Workflow Trigger').item.json.phone }}"
             }
           ]
         },
@@ -227,12 +227,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.choices[0].message.content }}\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.choices[0].message.content }}\"\n  }\n}",
         "options": {}
       },
       "id": "node-10a",
@@ -290,12 +290,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{( $json.length > 0 ) ? `Tiene una cita programada para el ${$json.starts_at}. ¿Confirma su asistencia? (sí/no)` : 'No tiene citas activas.'}}\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{( $json.length > 0 ) ? `Tiene una cita programada para el ${$json.starts_at}. ¿Confirma su asistencia? (sí/no)` : 'No tiene citas activas.'}}\"\n  }\n}",
         "options": {}
       },
       "id": "node-10b",
@@ -376,12 +376,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.choices[0].message.content }}\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.choices[0].message.content }}\"\n  }\n}",
         "options": {}
       },
       "id": "node-7b",
@@ -412,12 +412,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.message }}\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.message }}\"\n  }\n}",
         "options": {}
       },
       "id": "node-s2",
@@ -448,12 +448,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.message }}\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.message }}\"\n  }\n}",
         "options": {}
       },
       "id": "node-s4",
@@ -572,12 +572,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Hay disponibilidad para el {{ $input.item.json.date }} a las {{ $input.item.json.time }}. ¿Confirma la cita? (sí/no)\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Hay disponibilidad para el {{ $input.item.json.date }} a las {{ $input.item.json.time }}. ¿Confirma la cita? (sí/no)\"\n  }\n}",
         "options": {}
       },
       "id": "node-s9",
@@ -628,7 +628,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ $('Validar working_hours').item.json.date }}\",\n  \"time\": \"{{ $('Validar working_hours').item.json.time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ $('Validar working_hours').item.json.reason }}\",\n  \"channel\": \"whatsapp\"\n}",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ $('Validar working_hours').item.json.date }}\",\n  \"time\": \"{{ $('Validar working_hours').item.json.time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ $('Validar working_hours').item.json.reason }}\",\n  \"channel\": \"whatsapp\"\n}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
@@ -647,12 +647,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Su cita ha sido agendada para el {{ $('Validar working_hours').item.json.date }} a las {{ $('Validar working_hours').item.json.time }}. ¡Te esperamos!\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Su cita ha sido agendada para el {{ $('Validar working_hours').item.json.date }} a las {{ $('Validar working_hours').item.json.time }}. ¡Te esperamos!\"\n  }\n}",
         "options": {}
       },
       "id": "node-s13",
@@ -762,12 +762,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Tiene una cita el {{ $json.starts_at }}. ¿Desea cancelarla? (sí/no)\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Tiene una cita el {{ $json.starts_at }}. ¿Desea cancelarla? (sí/no)\"\n  }\n}",
         "options": {}
       },
       "id": "node-c3",
@@ -835,12 +835,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"¿Desea reagendar su cita para otra fecha? (sí/no)\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"¿Desea reagendar su cita para otra fecha? (sí/no)\"\n  }\n}",
         "options": {}
       },
       "id": "node-c7",
@@ -858,12 +858,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Para mejorar nuestro servicio, ¿podría indicarnos el motivo de la cancelación? (Enfermedad, Cambio de planes, Otro)\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Para mejorar nuestro servicio, ¿podría indicarnos el motivo de la cancelación? (Enfermedad, Cambio de planes, Otro)\"\n  }\n}",
         "options": {}
       },
       "id": "node-c9",
@@ -881,12 +881,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"En una escala del 1 al 5, ¿qué tan satisfecho está con nuestro servicio?\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"En una escala del 1 al 5, ¿qué tan satisfecho está con nuestro servicio?\"\n  }\n}",
         "options": {}
       },
       "id": "node-c10",
@@ -1020,7 +1020,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }}\",\n  \"time\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).reason }}\",\n  \"channel\": \"whatsapp\"\n}",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }}\",\n  \"time\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).reason }}\",\n  \"channel\": \"whatsapp\"\n}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
@@ -1064,12 +1064,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extraer datos del mensaje').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Su cita ha sido agendada para el {{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }} a las {{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }}. ¡Te esperamos!\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Su cita ha sido agendada para el {{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }} a las {{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }}. ¡Te esperamos!\"\n  }\n}",
         "options": {}
       },
       "id": "node-send-confirmation-confirm",
