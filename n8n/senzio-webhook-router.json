@@ -211,7 +211,7 @@
     },
     {
       "parameters": {
-        "workflowId": "restaurant-workflow-id"
+        "workflowId": "IsVL4MtjMbjgT3W4"
       },
       "id": "node-exec-restaurant",
       "name": "Execute Restaurant Workflow",
@@ -221,7 +221,7 @@
     },
     {
       "parameters": {
-        "workflowId": "abogados-workflow-id"
+        "workflowId": "Bkxc2EKAF6bVvN37"
       },
       "id": "node-exec-lawyers",
       "name": "Execute Lawyers Workflow",
@@ -231,7 +231,7 @@
     },
     {
       "parameters": {
-        "workflowId": "medical-workflow-id"
+        "workflowId": "4eY6HnN4y4TFVGJp"
       },
       "id": "node-exec-medical",
       "name": "Execute Medical Workflow",
