@@ -313,14 +313,10 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.APP_URL }}/api/n8n/appointments",
+        "url": "https://www.senz-io.com/api/n8n/appointments",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.N8N_WEBHOOK_SECRET }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -343,7 +339,9 @@
               "value": "confirm"
             }
           ]
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "node-10c",
       "name": "Confirmar cita vía API",
@@ -352,7 +350,10 @@
       "position": [
         2450,
         550
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
     },
     {
       "parameters": {
@@ -615,14 +616,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.APP_URL }}/api/n8n/appointments",
+        "url": "https://www.senz-io.com/api/n8n/appointments",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.N8N_WEBHOOK_SECRET }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -631,7 +628,9 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ $('Validar working_hours').item.json.date }}\",\n  \"time\": \"{{ $('Validar working_hours').item.json.time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ $('Validar working_hours').item.json.reason }}\",\n  \"channel\": \"whatsapp\"\n}"
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ $('Validar working_hours').item.json.date }}\",\n  \"time\": \"{{ $('Validar working_hours').item.json.time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ $('Validar working_hours').item.json.reason }}\",\n  \"channel\": \"whatsapp\"\n}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "node-s12",
       "name": "Agendar cita vía API",
@@ -640,7 +639,10 @@
       "position": [
         3650,
         200
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
     },
     {
       "parameters": {
@@ -668,14 +670,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.APP_URL }}/api/notifications/send",
+        "url": "https://www.senz-io.com/api/notifications/send",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.N8N_WEBHOOK_SECRET }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -684,7 +682,9 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"title\": \"Nueva cita agendada\",\n  \"message\": \"{{ $('Validar working_hours').item.json.date }} a las {{ $('Validar working_hours').item.json.time }} con {{ $('Buscar paciente').item.json.full_name }}\",\n  \"url\": \"/dashboard/appointments\"\n}"
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"title\": \"Nueva cita agendada\",\n  \"message\": \"{{ $('Validar working_hours').item.json.date }} a las {{ $('Validar working_hours').item.json.time }} con {{ $('Buscar paciente').item.json.full_name }}\",\n  \"url\": \"/dashboard/appointments\"\n}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "node-s14",
       "name": "Notificación push al médico",
@@ -693,7 +693,10 @@
       "position": [
         4050,
         200
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
     },
     {
       "parameters": {
@@ -782,14 +785,10 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.APP_URL }}/api/n8n/appointments",
+        "url": "https://www.senz-io.com/api/n8n/appointments",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.N8N_WEBHOOK_SECRET }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -798,7 +797,9 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"appointment_id\": \"{{ $('Buscar cita activa (cancelar)').item.json.id }}\",\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"action\": \"cancel\"\n}"
+        "jsonBody": "={\n  \"appointment_id\": \"{{ $('Buscar cita activa (cancelar)').item.json.id }}\",\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"action\": \"cancel\"\n}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "node-c5",
       "name": "Cancelar cita vía API",
@@ -807,7 +808,10 @@
       "position": [
         2650,
         750
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
     },
     {
       "parameters": {
@@ -1004,14 +1008,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.APP_URL }}/api/n8n/appointments",
+        "url": "https://www.senz-io.com/api/n8n/appointments",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.N8N_WEBHOOK_SECRET }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -1020,7 +1020,9 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }}\",\n  \"time\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).reason }}\",\n  \"channel\": \"whatsapp\"\n}"
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Extraer datos del mensaje').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }}\",\n  \"time\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).reason }}\",\n  \"channel\": \"whatsapp\"\n}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "node-book-appt-confirm",
       "name": "Agendar cita vía API (Confirmado)",
@@ -1029,7 +1031,10 @@
       "position": [
         2450,
         500
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
     },
     {
       "parameters": {
@@ -1082,14 +1087,10 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.APP_URL }}/api/notifications/send",
+        "url": "https://www.senz-io.com/api/notifications/send",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.N8N_WEBHOOK_SECRET }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -1098,7 +1099,9 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"title\": \"Nueva cita agendada\",\n  \"message\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }} a las {{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }} con {{ $('Buscar paciente').item.json.full_name }}\",\n  \"url\": \"/dashboard/appointments\"\n}"
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"title\": \"Nueva cita agendada\",\n  \"message\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }} a las {{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }} con {{ $('Buscar paciente').item.json.full_name }}\",\n  \"url\": \"/dashboard/appointments\"\n}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "node-notify-doctor-confirm",
       "name": "Notificación push al médico (Confirmado)",
@@ -1107,7 +1110,10 @@
       "position": [
         3050,
         500
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
     },
     {
       "parameters": {
