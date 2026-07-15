@@ -531,7 +531,11 @@
       "parameters": {
         "resource": "event",
         "operation": "list",
-        "calendarId": "primary",
+        "calendarId": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "id"
+        },
         "timeMin": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}",
         "timeMax": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':30' }}",
         "maxResults": 1
@@ -596,7 +600,11 @@
       "parameters": {
         "resource": "event",
         "operation": "create",
-        "calendarId": "primary",
+        "calendarId": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "id"
+        },
         "start": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}",
         "end": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':30' }}",
         "summary": "Cita {{ $('Buscar paciente').item.json.full_name }} - {{ $input.item.json.reason }}"
@@ -817,7 +825,11 @@
       "parameters": {
         "resource": "event",
         "operation": "delete",
-        "calendarId": "primary",
+        "calendarId": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "id"
+        },
         "eventId": "={{ $('Buscar cita activa (cancelar)').item.json.google_calendar_event_id }}"
       },
       "id": "node-c6",
