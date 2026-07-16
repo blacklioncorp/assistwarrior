@@ -2,12 +2,17 @@
   "name": "Senzio - Despacho de Abogados",
   "nodes": [
     {
-      "parameters": {},
+      "parameters": {
+        "inputSource": "passthrough"
+      },
       "id": "node-subworkflow-trigger",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "typeVersion": 1,
-      "position": [250, 320]
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        320
+      ]
     },
     {
       "parameters": {
@@ -33,7 +38,10 @@
       "name": "Get Patient History",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [1050, 320],
+      "position": [
+        1050,
+        320
+      ],
       "credentials": {
         "supabaseApi": "Supabase account"
       }
@@ -59,7 +67,10 @@
       "name": "Get Conversation History",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [1250, 320],
+      "position": [
+        1250,
+        320
+      ],
       "credentials": {
         "supabaseApi": "Supabase account"
       }
@@ -72,7 +83,10 @@
       "name": "Build Legal Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [1450, 320]
+      "position": [
+        1450,
+        320
+      ]
     },
     {
       "parameters": {
@@ -89,7 +103,10 @@
       "name": "OpenAI Legal Agent",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1650, 320],
+      "position": [
+        1650,
+        320
+      ],
       "credentials": {
         "httpHeaderAuth": "OpenAI Header Auth"
       }
@@ -102,7 +119,10 @@
       "name": "Extract Arguments",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [1850, 320]
+      "position": [
+        1850,
+        320
+      ]
     },
     {
       "parameters": {
@@ -119,7 +139,10 @@
       "name": "Has Booking Data?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [2050, 320]
+      "position": [
+        2050,
+        320
+      ]
     },
     {
       "parameters": {
@@ -134,7 +157,10 @@
       "name": "Google Calendar",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1,
-      "position": [2250, 200],
+      "position": [
+        2250,
+        200
+      ],
       "credentials": {
         "googleCalendarOAuth2Api": "Google Calendar account"
       }
@@ -154,7 +180,10 @@
       "name": "Save Appointment (API)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2450, 260],
+      "position": [
+        2450,
+        260
+      ],
       "credentials": {
         "httpHeaderAuth": "N8N Webhook Secret"
       }
@@ -167,7 +196,10 @@
       "name": "Build Confirmation Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [2650, 260]
+      "position": [
+        2650,
+        260
+      ]
     },
     {
       "parameters": {
@@ -184,7 +216,10 @@
       "name": "Send Confirmation WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2850, 260],
+      "position": [
+        2850,
+        260
+      ],
       "credentials": {
         "httpHeaderAuth": "WhatsApp Header Auth"
       }
@@ -204,7 +239,10 @@
       "name": "Send WhatsApp Reply",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2250, 440],
+      "position": [
+        2250,
+        440
+      ],
       "credentials": {
         "httpHeaderAuth": "WhatsApp Header Auth"
       }
@@ -212,37 +250,121 @@
   ],
   "connections": {
     "Execute Workflow Trigger": {
-      "main": [[{ "node": "Get Patient History", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Patient History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Patient History": {
-      "main": [[{ "node": "Get Conversation History", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Conversation History": {
-      "main": [[{ "node": "Build Legal Prompt", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build Legal Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build Legal Prompt": {
-      "main": [[{ "node": "OpenAI Legal Agent", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "OpenAI Legal Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "OpenAI Legal Agent": {
-      "main": [[{ "node": "Extract Arguments", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Extract Arguments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract Arguments": {
-      "main": [[{ "node": "Has Booking Data?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has Booking Data?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has Booking Data?": {
       "main": [
-        [{ "node": "Google Calendar", "type": "main", "index": 0 }],
-        [{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Google Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Google Calendar": {
-      "main": [[{ "node": "Save Appointment (API)", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Save Appointment (API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Save Appointment (API)": {
-      "main": [[{ "node": "Build Confirmation Message", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build Confirmation Message": {
-      "main": [[{ "node": "Send Confirmation WhatsApp", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Send Confirmation WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -250,5 +372,12 @@
     "saveManualExecutions": true,
     "saveExecutionProgress": true
   },
-  "tags": [{ "name": "senzio" }, { "name": "abogados" }]
+  "tags": [
+    {
+      "name": "senzio"
+    },
+    {
+      "name": "abogados"
+    }
+  ]
 }

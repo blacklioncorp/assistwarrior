@@ -2,12 +2,17 @@
   "name": "Senzio - Restaurante / Comercio",
   "nodes": [
     {
-      "parameters": {},
+      "parameters": {
+        "inputSource": "passthrough"
+      },
       "id": "node-subworkflow-trigger",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
-      "typeVersion": 1,
-      "position": [250, 320]
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        320
+      ]
     },
     {
       "parameters": {
@@ -34,7 +39,10 @@
       "name": "Get Customer History",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [1050, 320],
+      "position": [
+        1050,
+        320
+      ],
       "credentials": {
         "supabaseApi": "Supabase account"
       },
@@ -63,7 +71,10 @@
       "name": "Get Conversation History",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [1250, 320],
+      "position": [
+        1250,
+        320
+      ],
       "credentials": {
         "supabaseApi": "Supabase account"
       },
@@ -79,7 +90,10 @@
       "name": "Build Restaurant Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [1450, 320]
+      "position": [
+        1450,
+        320
+      ]
     },
     {
       "parameters": {
@@ -96,7 +110,10 @@
       "name": "OpenAI Restaurant Agent",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1650, 320],
+      "position": [
+        1650,
+        320
+      ],
       "credentials": {
         "httpHeaderAuth": "OpenAI Header Auth"
       }
@@ -109,7 +126,10 @@
       "name": "Extract Order Arguments",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [1850, 320]
+      "position": [
+        1850,
+        320
+      ]
     },
     {
       "parameters": {
@@ -126,7 +146,10 @@
       "name": "Has Complete Order?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [2050, 320]
+      "position": [
+        2050,
+        320
+      ]
     },
     {
       "parameters": {
@@ -143,7 +166,10 @@
       "name": "Save Order (API)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2250, 200],
+      "position": [
+        2250,
+        200
+      ],
       "credentials": {
         "httpHeaderAuth": "N8N Webhook Secret"
       }
@@ -156,7 +182,10 @@
       "name": "Build Order Confirmation",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [2450, 200]
+      "position": [
+        2450,
+        200
+      ]
     },
     {
       "parameters": {
@@ -173,7 +202,10 @@
       "name": "Send Confirmation to Client",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2650, 200],
+      "position": [
+        2650,
+        200
+      ],
       "credentials": {
         "httpHeaderAuth": "WhatsApp Header Auth"
       }
@@ -186,7 +218,10 @@
       "name": "Build Owner Notification",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [2650, 360]
+      "position": [
+        2650,
+        360
+      ]
     },
     {
       "parameters": {
@@ -203,7 +238,10 @@
       "name": "Has Notification Phone?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [2850, 360]
+      "position": [
+        2850,
+        360
+      ]
     },
     {
       "parameters": {
@@ -220,7 +258,10 @@
       "name": "Send Notification to Owner",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [3050, 440],
+      "position": [
+        3050,
+        440
+      ],
       "credentials": {
         "httpHeaderAuth": "WhatsApp Header Auth"
       }
@@ -240,7 +281,10 @@
       "name": "Send WhatsApp Reply",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2350, 540],
+      "position": [
+        2350,
+        540
+      ],
       "credentials": {
         "httpHeaderAuth": "WhatsApp Header Auth"
       }
@@ -260,7 +304,10 @@
       "name": "Is Menu Image?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [2150, 460]
+      "position": [
+        2150,
+        460
+      ]
     },
     {
       "parameters": {
@@ -277,7 +324,10 @@
       "name": "Send Menu Image",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2350, 380],
+      "position": [
+        2350,
+        380
+      ],
       "credentials": {
         "httpHeaderAuth": "WhatsApp Header Auth"
       }
@@ -285,51 +335,157 @@
   ],
   "connections": {
     "Execute Workflow Trigger": {
-      "main": [[{ "node": "Get Customer History", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Customer History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Customer History": {
-      "main": [[{ "node": "Get Conversation History", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Conversation History": {
-      "main": [[{ "node": "Build Restaurant Prompt", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build Restaurant Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build Restaurant Prompt": {
-      "main": [[{ "node": "OpenAI Restaurant Agent", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "OpenAI Restaurant Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "OpenAI Restaurant Agent": {
-      "main": [[{ "node": "Extract Order Arguments", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Extract Order Arguments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract Order Arguments": {
-      "main": [[{ "node": "Has Complete Order?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has Complete Order?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has Complete Order?": {
       "main": [
-        [{ "node": "Save Order (API)", "type": "main", "index": 0 }],
-        [{ "node": "Is Menu Image?", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Save Order (API)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is Menu Image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Is Menu Image?": {
       "main": [
-        [{ "node": "Send Menu Image", "type": "main", "index": 0 }],
-        [{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send Menu Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Save Order (API)": {
-      "main": [[{ "node": "Build Order Confirmation", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build Order Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build Order Confirmation": {
       "main": [
-        [{ "node": "Send Confirmation to Client", "type": "main", "index": 0 }],
-        [{ "node": "Build Owner Notification", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send Confirmation to Client",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Owner Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Build Owner Notification": {
-      "main": [[{ "node": "Has Notification Phone?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has Notification Phone?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has Notification Phone?": {
       "main": [
         [],
-        [{ "node": "Send Notification to Owner", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send Notification to Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
@@ -338,5 +494,12 @@
     "saveManualExecutions": true,
     "saveExecutionProgress": true
   },
-  "tags": [{ "name": "senzio" }, { "name": "restaurante" }]
+  "tags": [
+    {
+      "name": "senzio"
+    },
+    {
+      "name": "restaurante"
+    }
+  ]
 }

@@ -12,7 +12,10 @@
       "name": "WhatsApp Webhook (Verification)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [100, 100]
+      "position": [
+        100,
+        100
+      ]
     },
     {
       "parameters": {
@@ -30,7 +33,10 @@
       "name": "Is Token Valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [300, 100]
+      "position": [
+        300,
+        100
+      ]
     },
     {
       "parameters": {
@@ -51,7 +57,10 @@
       "name": "Respond with Challenge",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [500, 50]
+      "position": [
+        500,
+        50
+      ]
     },
     {
       "parameters": {
@@ -64,7 +73,10 @@
       "name": "WhatsApp Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
-      "position": [100, 300]
+      "position": [
+        100,
+        300
+      ]
     },
     {
       "parameters": {
@@ -85,7 +97,10 @@
       "name": "Respond Event Received",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [300, 300]
+      "position": [
+        300,
+        300
+      ]
     },
     {
       "parameters": {
@@ -95,7 +110,10 @@
       "name": "Extract WhatsApp Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [500, 300]
+      "position": [
+        500,
+        300
+      ]
     },
     {
       "parameters": {
@@ -112,7 +130,10 @@
       "name": "Skip?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [700, 300]
+      "position": [
+        700,
+        300
+      ]
     },
     {
       "parameters": {
@@ -135,7 +156,10 @@
       "name": "Get Professional Config",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [900, 300],
+      "position": [
+        900,
+        300
+      ],
       "credentials": {
         "supabaseApi": "Supabase account"
       },
@@ -158,7 +182,10 @@
       "name": "Professional Found?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1100, 300]
+      "position": [
+        1100,
+        300
+      ]
     },
     {
       "parameters": {
@@ -168,7 +195,10 @@
       "name": "Build Clean Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [1300, 300]
+      "position": [
+        1300,
+        300
+      ]
     },
     {
       "parameters": {
@@ -207,37 +237,67 @@
       "name": "Route by Business Type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
-      "position": [1500, 300]
+      "position": [
+        1500,
+        300
+      ]
     },
     {
       "parameters": {
-        "workflowId": "IsVL4MtjMbjgT3W4"
+        "workflowId": {
+          "__rl": true,
+          "value": "IsVL4MtjMbjgT3W4",
+          "mode": "list",
+          "cachedResultName": "Senzio - Restaurante / Comercio"
+        },
+        "options": {}
       },
       "id": "node-exec-restaurant",
       "name": "Execute Restaurant Workflow",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
-      "position": [1750, 200]
+      "typeVersion": 1.2,
+      "position": [
+        1750,
+        200
+      ]
     },
     {
       "parameters": {
-        "workflowId": "Bkxc2EKAF6bVvN37"
+        "workflowId": {
+          "__rl": true,
+          "value": "Bkxc2EKAF6bVvN37",
+          "mode": "list",
+          "cachedResultName": "Senzio - Abogados / Legal"
+        },
+        "options": {}
       },
       "id": "node-exec-lawyers",
       "name": "Execute Lawyers Workflow",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
-      "position": [1750, 400]
+      "typeVersion": 1.2,
+      "position": [
+        1750,
+        400
+      ]
     },
     {
       "parameters": {
-        "workflowId": "4eY6HnN4y4TFVGJp"
+        "workflowId": {
+          "__rl": true,
+          "value": "4eY6HnN4y4TFVGJp",
+          "mode": "list",
+          "cachedResultName": "WhatsApp - Asistente Virtual Médico"
+        },
+        "options": {}
       },
       "id": "node-exec-medical",
       "name": "Execute Medical Workflow",
       "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1,
-      "position": [1750, 600]
+      "typeVersion": 1.2,
+      "position": [
+        1750,
+        600
+      ]
     }
   ],
   "connections": {
