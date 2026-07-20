@@ -674,6 +674,7 @@ export function SuperadminClient({
             )}
           </div>
         </div>
+      )}
       {/* ── TAB: PRICING ── */}
       {activeTab === 'pricing' && (
         <div className="space-y-4 animate-fade-in">
