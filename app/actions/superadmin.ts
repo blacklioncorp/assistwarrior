@@ -373,3 +373,55 @@ export async function getAuditLogs() {
 
   return data
 }
+
+/**
+ * Returns all pricing plans ordered by "orden".
+ */
+export async function getPricingPlans() {
+  const isAdmin = await checkIsSuperadmin()
+  if (!isAdmin) throw new Error('No autorizado')
+
+  const adminClient = createAdminClient()
+
+  const { data, error } = await adminClient
+    .from('pricing_plans')
+    .select('*')
+    .order('orden', { ascending: true })
+
+  if (error) {
+    console.error('Error fetching pricing plans:', error)
+    return []
+  }
+
+  return data
+}
+
+/**
+ * Updates a pricing plan.
+ */
+export async function updatePricingPlan(id: string, updates: any) {
+  const isAdmin = await checkIsSuperadmin()
+  if (!isAdmin) return { error: 'No autorizado' }
+
+  const adminClient = createAdminClient()
+  const { data: { user } } = await (await createClient()).auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  const { error } = await adminClient
+    .from('pricing_plans')
+    .update({ ...updates, actualizado_en: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+
+  // Audit log
+  await adminClient.from('admin_audit_logs').insert({
+    admin_id: user.id,
+    action: `Plan de precios actualizado`,
+    details: { plan_id: id, updates }
+  })
+
+  revalidatePath('/')
+  revalidatePath('/dashboard/superadmin')
+  return { success: true }
+}

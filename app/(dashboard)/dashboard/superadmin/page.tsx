@@ -6,7 +6,8 @@ import {
   getProfessionals, 
   getAuditLogs, 
   initializeSuperadminEmails,
-  getSuperadminEmails
+  getSuperadminEmails,
+  getPricingPlans
 } from '@/app/actions/superadmin'
 import { SuperadminClient } from './SuperadminClient'
 
@@ -43,6 +44,7 @@ export default async function SuperadminPage() {
   const professionals = await getProfessionals()
   const auditLogs = await getAuditLogs()
   const adminEmails = await getSuperadminEmails()
+  const pricingPlans = await getPricingPlans()
 
   return (
     <SuperadminClient 
@@ -50,8 +52,8 @@ export default async function SuperadminPage() {
       initialProfessionals={professionals as any} 
       initialAuditLogs={auditLogs as any}
       initialAdminEmails={adminEmails as any}
+      initialPricingPlans={pricingPlans as any}
       currentUserEmail={user?.email || ''}
     />
   )
 }
-

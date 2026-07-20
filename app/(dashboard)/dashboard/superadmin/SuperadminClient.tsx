@@ -30,8 +30,22 @@ import {
   getProfessionals,
   getGlobalStats,
   getAuditLogs,
-  getSuperadminEmails
+  getSuperadminEmails,
+  updatePricingPlan,
+  getPricingPlans
 } from '@/app/actions/superadmin'
+
+interface PricingPlanRow {
+  id: string
+  nombre: string
+  precio_mxn: number | null
+  descripcion: string | null
+  es_popular: boolean
+  es_contacto: boolean
+  orden: number
+  features: any
+  activo: boolean
+}
 
 interface StatRow {
   totalProfessionals: number
@@ -76,6 +90,7 @@ interface SuperadminClientProps {
   initialProfessionals: ProfessionalRow[]
   initialAuditLogs: AuditLogRow[]
   initialAdminEmails: AdminEmailRow[]
+  initialPricingPlans: PricingPlanRow[]
   currentUserEmail: string
 }
 
@@ -84,13 +99,15 @@ export function SuperadminClient({
   initialProfessionals,
   initialAuditLogs,
   initialAdminEmails,
+  initialPricingPlans,
   currentUserEmail
 }: SuperadminClientProps) {
-  const [activeTab, setActiveTab] = useState<'doctors' | 'whitelist' | 'audit'>('doctors')
+  const [activeTab, setActiveTab] = useState<'doctors' | 'whitelist' | 'audit' | 'pricing'>('doctors')
   const [stats, setStats] = useState<StatRow>(initialStats)
   const [professionals, setProfessionals] = useState<ProfessionalRow[]>(initialProfessionals)
   const [auditLogs, setAuditLogs] = useState<AuditLogRow[]>(initialAuditLogs)
   const [adminEmails, setAdminEmails] = useState<AdminEmailRow[]>(initialAdminEmails)
+  const [pricingPlans, setPricingPlans] = useState<PricingPlanRow[]>(initialPricingPlans)
 
   // Filters & search
   const [searchTerm, setSearchTerm] = useState('')
@@ -108,13 +125,30 @@ export function SuperadminClient({
       const p = await getProfessionals()
       const a = await getAuditLogs()
       const e = await getSuperadminEmails()
+      const pp = await getPricingPlans()
       setStats(s)
       setProfessionals(p as any)
       setAuditLogs(a as any)
       setAdminEmails(e as any)
+      setPricingPlans(pp as any)
     } catch (err: any) {
       console.error('Error refreshing admin dashboard data:', err)
     }
+  }
+
+  // Handle Pricing Plan update
+  const handleUpdatePricingPlan = async (id: string, updates: any) => {
+    setErrorMessage(null)
+    setSuccessMessage(null)
+    startTransition(async () => {
+      const res = await updatePricingPlan(id, updates)
+      if (res.error) {
+        setErrorMessage(res.error)
+      } else {
+        setSuccessMessage('Plan de precios actualizado con éxito.')
+        await refreshData()
+      }
+    })
   }
 
   // Handle Plan update
@@ -347,6 +381,17 @@ export function SuperadminClient({
         >
           <ListTodo className="h-4 w-4" />
           Registro de Auditoría
+        </button>
+        <button
+          onClick={() => setActiveTab('pricing')}
+          className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
+            activeTab === 'pricing'
+              ? 'border-[#1E4A8A] text-[#1E4A8A]'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          <TrendingUp className="h-4 w-4" />
+          Planes y Precios
         </button>
       </div>
 
@@ -627,6 +672,93 @@ export function SuperadminClient({
                 )
               })
             )}
+          </div>
+        </div>
+      {/* ── TAB: PRICING ── */}
+      {activeTab === 'pricing' && (
+        <div className="space-y-4 animate-fade-in">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="h-5 w-5 text-slate-500" />
+            <h3 className="text-sm font-semibold text-slate-800">Gestión de Planes y Precios</h3>
+          </div>
+          
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {pricingPlans.map((plan) => (
+              <div key={plan.id} className="bg-white rounded-2xl border border-slate-200 shadow-card p-5 space-y-4 flex flex-col">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h4 className="font-bold text-slate-800 text-lg">{plan.nombre}</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-400 font-semibold uppercase">Más Popular</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={plan.es_popular}
+                        disabled={isPending}
+                        onChange={(e) => handleUpdatePricingPlan(plan.id, { es_popular: e.target.checked })}
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-3 flex-1">
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase">Precio (MXN) / Mes</label>
+                    <input
+                      type="number"
+                      className="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
+                      value={plan.precio_mxn || ''}
+                      disabled={plan.es_contacto || isPending}
+                      onChange={(e) => handleUpdatePricingPlan(plan.id, { precio_mxn: Number(e.target.value) })}
+                      placeholder={plan.es_contacto ? "A la medida" : "0.00"}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase">Descripción</label>
+                    <textarea
+                      rows={2}
+                      className="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none"
+                      value={plan.descripcion || ''}
+                      disabled={isPending}
+                      onBlur={(e) => {
+                        if (e.target.value !== plan.descripcion) {
+                          handleUpdatePricingPlan(plan.id, { descripcion: e.target.value })
+                        }
+                      }}
+                      onChange={(e) => {
+                        const newPlans = [...pricingPlans]
+                        const idx = newPlans.findIndex(p => p.id === plan.id)
+                        newPlans[idx].descripcion = e.target.value
+                        setPricingPlans(newPlans)
+                      }}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase">Features (JSON Array)</label>
+                    <textarea
+                      rows={4}
+                      className="w-full mt-1 rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono text-slate-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none resize-none"
+                      defaultValue={JSON.stringify(plan.features, null, 2)}
+                      disabled={isPending}
+                      onBlur={(e) => {
+                        try {
+                          const parsed = JSON.parse(e.target.value)
+                          handleUpdatePricingPlan(plan.id, { features: parsed })
+                        } catch (err) {
+                          setErrorMessage('Formato JSON inválido en las features del plan ' + plan.nombre)
+                        }
+                      }}
+                    />
+                    <p className="text-[9px] text-slate-400 mt-1 leading-tight">
+                      Edita el JSON y haz clic fuera del cuadro para guardar automáticamente.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

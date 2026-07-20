@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/utils/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { DemoVideo } from '@/components/landing/DemoVideo'
+import { FaqAccordion } from '@/components/landing/FaqAccordion'
 import {
   Calendar,
   MessageSquare,
@@ -16,6 +18,7 @@ import {
   Scale,
   UtensilsCrossed,
   Stethoscope,
+  CheckCircle,
 } from 'lucide-react'
 
 // Custom Senzio Logo SVG Component
@@ -144,6 +147,11 @@ export default async function LandingPage() {
             Sin tarjeta de crédito · Configuración lista en 5 minutos
           </p>
         </div>
+      </section>
+
+      {/* ── Demo Video Placeholder ── */}
+      <section className="pb-24 pt-4 px-4 lg:px-6 relative z-10">
+        <DemoVideo videoUrl={process.env.NEXT_PUBLIC_DEMO_VIDEO_URL} />
       </section>
 
       {/* ── Verticals Section ── */}
@@ -315,6 +323,34 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* ── Pricing Section ── */}
+      <section id="precios" className="py-24 bg-[#05050A]">
+        <div className="mx-auto max-w-6xl px-4 lg:px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Planes simples, resultados reales
+            </h2>
+            <p className="mt-4 text-slate-400">
+              Sin contratos. Sin sorpresas. Cancela cuando quieras.
+            </p>
+          </div>
+
+          <PricingList />
+        </div>
+      </section>
+
+      {/* ── FAQ Section ── */}
+      <section id="faq" className="py-24 bg-[#0F0F1A] border-t border-slate-900/60">
+        <div className="mx-auto max-w-4xl px-4 lg:px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Preguntas frecuentes
+            </h2>
+          </div>
+          <FaqAccordion />
+        </div>
+      </section>
+
       {/* ── CTA section ── */}
       <section className="py-24 bg-gradient-to-b from-[#05050A] to-[#0F0F1A] relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
@@ -360,3 +396,89 @@ export default async function LandingPage() {
     </div>
   )
 }
+
+async function PricingList() {
+  let plans: any[] = []
+  
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const res = await fetch(`${baseUrl}/api/pricing`, { 
+      next: { revalidate: 3600 } 
+    })
+    
+    if (res.ok) {
+      const data = await res.json()
+      plans = data.plans || []
+    }
+  } catch (error) {
+    console.error("Failed to fetch pricing", error)
+  }
+
+  if (plans.length === 0) {
+    return <div className="text-center text-slate-500">Cargando planes...</div>
+  }
+
+  return (
+    <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
+      {plans.map((plan) => (
+        <div 
+          key={plan.id} 
+          className={`relative flex flex-col rounded-3xl p-8 border ${plan.es_popular ? 'border-purple-500/50 bg-[#120F24] shadow-2xl shadow-purple-900/20' : 'border-slate-800 bg-[#0F0F1A]'}`}
+        >
+          {plan.es_popular && (
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-purple-500 to-cyan-400 px-4 py-1 text-xs font-bold text-white shadow-lg">
+              Más popular
+            </div>
+          )}
+
+          <div className="mb-6">
+            <h3 className="text-xl font-bold text-white">{plan.nombre}</h3>
+            <p className="mt-2 text-sm text-slate-400 h-10">{plan.descripcion}</p>
+          </div>
+
+          <div className="mb-8">
+            {plan.es_contacto ? (
+              <span className="text-4xl font-extrabold text-white">A la medida</span>
+            ) : (
+              <div className="flex items-baseline gap-1">
+                <span className="text-4xl font-extrabold text-white">${plan.precio_mxn}</span>
+                <span className="text-sm font-medium text-slate-400">/ mes</span>
+              </div>
+            )}
+          </div>
+
+          <ul className="mb-8 flex-1 space-y-4">
+            {Array.isArray(plan.features) && plan.features.map((feature: string, idx: number) => (
+              <li key={idx} className="flex items-start gap-3 text-sm text-slate-300">
+                <CheckCircle className="h-5 w-5 shrink-0 text-cyan-400" />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+
+          {plan.es_contacto ? (
+            <Link
+              href="https://wa.me/5215555555555" // Replace with actual number
+              className="mt-auto block w-full rounded-xl border border-slate-700 bg-transparent px-4 py-3 text-center text-sm font-bold text-white hover:bg-slate-800 transition-colors"
+            >
+              Contactar
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className={`mt-auto block w-full rounded-xl px-4 py-3 text-center text-sm font-bold text-white transition-all ${plan.es_popular ? 'bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-90' : 'bg-slate-800 hover:bg-slate-700'}`}
+            >
+              Comenzar gratis
+            </Link>
+          )}
+        </div>
+      ))}
+      <div className="md:col-span-3 text-center mt-4">
+        <p className="text-sm text-slate-500">
+          Todos los planes incluyen 14 días de prueba gratis · Sin tarjeta de crédito
+        </p>
+      </div>
+    </div>
+  )
+}
+
