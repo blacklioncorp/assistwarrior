@@ -346,9 +346,15 @@ export default async function LandingPage() {
             <SenzioLogo className="h-6 w-6" />
             <span className="text-sm font-bold text-white">Senzio</span>
           </div>
-          <p className="text-xs text-slate-500">
-            © 2026 Senzio. Agentes inteligentes conversacionales multi-vertical.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-4">
+              <Link href="/terminos" className="text-xs text-slate-400 hover:text-white transition-colors">Términos y Condiciones</Link>
+              <Link href="/privacidad" className="text-xs text-slate-400 hover:text-white transition-colors">Aviso de Privacidad</Link>
+            </div>
+            <p className="text-xs text-slate-500">
+              © 2026 Senzio. Agentes inteligentes conversacionales multi-vertical.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
