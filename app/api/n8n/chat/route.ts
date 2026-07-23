@@ -91,6 +91,7 @@ export async function POST(req: Request) {
         conversation_id: conversationId,
         professional_id: professional_id,
         sender,
+        direction: sender === 'user' ? 'inbound' : 'outbound',
         content: message,
         created_at: new Date().toISOString(),
       })
