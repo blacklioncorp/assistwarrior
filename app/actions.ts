@@ -475,54 +475,83 @@ export async function updateSettings(prevState: unknown, formData: FormData) {
 /**
  * Completes the onboarding process for new professionals.
  */
-export async function completeOnboarding(prevState: unknown, formData: FormData) {
+export async function completeOnboarding(payload: { vertical: string | null; data: Record<string, any> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
 
-  const businessTypeId = formData.get('business_type_id') as string
-  const clinicName = formData.get('clinic_name') as string
-  const fullName = formData.get('full_name') as string
+  const { vertical, data } = payload
+  if (!vertical) return { error: 'Falta la vertical' }
 
-  if (!businessTypeId || businessTypeId.trim() === '') {
-    return { error: 'Debes seleccionar un tipo de negocio' }
+  // 1. Encontrar el business_type_id correcto
+  const verticalMap: Record<string, string> = {
+    restaurant: 'restaurant',
+    medical: 'doctor', // Asumiendo que el name en DB es 'doctor' o 'medical'
+    lawyer: 'lawfirm'
   }
-  if (!clinicName || clinicName.trim().length < 3) {
-    return { error: 'El nombre del negocio debe tener al menos 3 caracteres' }
-  }
-  if (!fullName || fullName.trim().length < 3) {
-    return { error: 'Tu nombre completo debe tener al menos 3 caracteres' }
-  }
-
-  // Determine a default tone prompt based on selected business type
-  const { data: btype } = await supabase
+  
+  const searchName = verticalMap[vertical] || vertical
+  
+  let { data: btype } = await supabase
     .from('business_types')
-    .select('name')
-    .eq('id', businessTypeId)
+    .select('id, name')
+    .eq('name', searchName)
     .single()
-
-  let tone_prompt = 'Sé amable y profesional.'
-  if (btype?.name === 'lawfirm') {
-    tone_prompt = 'Sé sumamente profesional, empático y claro. Enfatiza que la asesoría definitiva requiere una cita formal.'
-  } else if (btype?.name === 'restaurant') {
-    tone_prompt = 'Sé amigable, rápido y servicial. Ayuda al comensal a armar su pedido y confirma cantidades de forma clara.'
-  } else {
-    tone_prompt = 'Sé empático, cálido y profesional. Ayuda al paciente a resolver sus dudas y confirma sus datos antes de agendar.'
+    
+  // Si no se encuentra exactamente, hacer un fallback
+  if (!btype) {
+    const { data: fallbackTypes } = await supabase.from('business_types').select('id, name').limit(1)
+    if (fallbackTypes && fallbackTypes.length > 0) {
+      btype = fallbackTypes[0]
+    } else {
+      return { error: 'No hay tipos de negocio configurados en la base de datos' }
+    }
   }
 
+  // 2. Construir el business_config
+  let business_config: Record<string, any> = {}
+  
+  if (vertical === 'restaurant') {
+    business_config = {
+      menu: [], // Placeholder hasta que creen el menú real
+      service_modes: data.service_modes || [],
+      currency: data.currency || 'MXN',
+      orders_notification_phone: data.orders_notification_phone || '',
+      menu_image_url: data.menu_image_url || '',
+      cuisine_type: data.cuisine_type || ''
+    }
+  } else if (vertical === 'medical') {
+    business_config = {
+      working_hours: data.working_hours,
+      specialty: data.specialty,
+      duration_minutes: data.duration_minutes,
+      google_calendar_email: data.google_calendar_email || ''
+    }
+  } else if (vertical === 'lawyer') {
+    business_config = {
+      working_hours: data.working_hours,
+      legal_areas: data.legal_areas || [],
+      modalities: data.modalities || [],
+      ai_tone: data.ai_tone || '',
+      google_calendar_email: data.google_calendar_email || ''
+    }
+  }
+
+  // 3. Update professionals
   const { error } = await supabase
     .from('professionals')
     .update({
-      business_type_id: businessTypeId,
-      clinic_name: clinicName.trim(),
-      full_name: fullName.trim(),
-      tone_prompt,
-      business_config: btype?.name === 'restaurant' ? { menu: [], orders_notification_phone: '' } : { modalities: ['Presencial'] }
+      business_type_id: btype.id,
+      full_name: data.full_name || data.business_name || 'Nuevo Usuario',
+      clinic_name: data.clinic_name || data.business_name || '',
+      whatsapp_phone_number: data.whatsapp_phone_number || '',
+      tone_prompt: data.ai_tone || (vertical === 'restaurant' ? 'Sé rápido y servicial.' : 'Sé profesional y empático.'),
+      business_config
     })
     .eq('id', user.id)
 
   if (error) {
-    return { error: 'Error al guardar la configuración inicial: ' + error.message }
+    return { error: 'Error al guardar la configuración: ' + error.message }
   }
 
   revalidatePath('/dashboard')
