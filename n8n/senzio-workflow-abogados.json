@@ -80,7 +80,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Construir historial de conversación para OpenAI\nconst messages = $input.all();\nconst professional = $('Execute Workflow Trigger').item.json.professional;\nconst patient = $('Get Patient History').item?.json || {};\nconst incoming = $('Execute Workflow Trigger').item.json;\n\nconst businessName = professional.full_name || 'el despacho';\nconst businessConfig = professional.business_config || {};\nconst btConfig = professional.business_types?.config || {};\n\n// Bugfix: Extract names/descriptions from custom fields object array\nconst customFields = btConfig.custom_fields || [];\nconst areas = customFields.map(f => f.description || f.name);\nif (areas.length === 0) {\n  areas.push('área del derecho', 'descripción del caso', 'modalidad');\n}\n\nconst tono = businessConfig.ai_tone || 'profesional, empático y claro';\nconst modalities = businessConfig.modalities || ['Presencial', 'Videollamada', 'Llamada telefónica'];\n\nconst systemPrompt = `Eres el asistente virtual del despacho de abogados \"${businessName}\".\\nTu objetivo es atender al cliente, entender su caso jurídico y agendar una consulta si aplica.\\n\\nTono: ${tono}\\n\\nINSTRUCCIONES:\\n1. Saluda al cliente por su nombre si lo conoces.\\n2. Pregunta de forma conversacional por: ${areas.join(', ')}.\\n3. Modalidades disponibles para la consulta: ${modalities.join(', ')}.\\n4. Cuando tengas nombre, fecha/hora preferida, área del derecho, descripción breve y modalidad → ejecuta la función Schedule_Legal_Consultation.\\n5. Si el cliente hace preguntas de asesoría legal, responde orientativamente pero SIEMPRE agrega: \"Esta información es orientativa. La evaluación definitiva de tu caso requiere una consulta formal con el abogado.\"\\n6. NUNCA des opiniones jurídicas definitivas sobre casos específicos.\\n7. Responde siempre en español.\\n8. Sé conciso — máximo 3 oraciones por respuesta.`;\n\n// Construir historial previo ordenado cronológicamente\nconst sortedMessages = [...messages]\n  .filter(m => m.json && m.json.content)\n  .sort((a, b) => new Date(a.json.created_at).getTime() - new Date(b.json.created_at).getTime());\n\nconst historial = sortedMessages.map(m => ({\n  role: m.json.sender === 'user' ? 'user' : 'assistant',\n  content: m.json.content\n}));\n\nconst openaiMessages = [\n  { role: 'system', content: systemPrompt },\n  ...historial,\n  { role: 'user', content: incoming.message }\n];\n\nreturn [{\n  json: {\n    openaiMessages,\n    professional,\n    patient,\n    incoming\n  }\n}];"
+        "jsCode": "// Construir prompt para abogados\nconst messages = $input.all();\nconst professional = $('Execute Workflow Trigger').item.json.professional;\nconst customer = {};\nconst incoming = $('Execute Workflow Trigger').item.json;\n\nconst businessName = professional.full_name || 'el despacho';\nconst businessConfig = professional.business_config || {};\nconst btConfig = professional.business_types?.config || {};\n\n// Bugfix: Extract names/descriptions from custom fields object array\nconst customFields = btConfig.custom_fields || [];\nconst areas = customFields.map(f => f.description || f.name);\nif (areas.length === 0) {\n  areas.push('área del derecho', 'descripción del caso', 'modalidad');\n}\n\nconst tono = businessConfig.ai_tone || 'profesional, empático y claro';\nconst modalities = businessConfig.modalities || ['Presencial', 'Videollamada', 'Llamada telefónica'];\n\nconst systemPrompt = `Eres el asistente virtual del despacho de abogados \"${businessName}\".\\nTu objetivo es atender al cliente, entender su caso jurídico y agendar una consulta si aplica.\\n\\nTono: ${tono}\\n\\nINSTRUCCIONES:\\n1. Saluda al cliente por su nombre si lo conoces.\\n2. Pregunta de forma conversacional por: ${areas.join(', ')}.\\n3. Modalidades disponibles para la consulta: ${modalities.join(', ')}.\\n4. Cuando tengas nombre, fecha/hora preferida, área del derecho, descripción breve y modalidad → ejecuta la función Schedule_Legal_Consultation.\\n5. Si el cliente hace preguntas de asesoría legal, responde orientativamente pero SIEMPRE agrega: \"Esta información es orientativa. La evaluación definitiva de tu caso requiere una consulta formal con el abogado.\"\\n6. NUNCA des opiniones jurídicas definitivas sobre casos específicos.\\n7. Responde siempre en español.\\n8. Sé conciso — máximo 3 oraciones por respuesta.`;\n\n// Construir historial previo ordenado cronológicamente\nconst sortedMessages = [...messages]\n  .filter(m => m.json && m.json.content)\n  .sort((a, b) => new Date(a.json.created_at).getTime() - new Date(b.json.created_at).getTime());\n\nconst historial = sortedMessages.map(m => ({\n  role: m.json.sender === 'user' ? 'user' : 'assistant',\n  content: m.json.content\n}));\n\nconst openaiMessages = [\n  { role: 'system', content: systemPrompt },\n  ...historial,\n  { role: 'user', content: incoming.message }\n];\n\nreturn [{\n  json: {\n    openaiMessages,\n    professional,\n    customer,\n    incoming\n  }\n}];"
       },
       "id": "node-build-prompt",
       "name": "Build Legal Prompt",
@@ -230,12 +230,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $json.professional.whatsapp_phone_number_id + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $node[\"Execute Workflow Trigger\"].json.professional.whatsapp_phone_number_id + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.incoming.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.reply_text }}\"\n  }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $node[\"Execute Workflow Trigger\"].json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": {{ JSON.stringify($node[\"Extract Order Arguments\"].json.reply_text) }}\n  }\n}",
         "options": {}
       },
       "id": "node-8",
@@ -256,7 +256,7 @@
         "url": "https://www.senz-io.com/api/n8n/chat",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"professional_id\": \"{{ $node[\"Execute Workflow Trigger\"].json.professional.id }}\",\n  \"patient_phone\": \"{{ $node[\"Execute Workflow Trigger\"].json.phone }}\",\n  \"patient_name\": \"{{ $node[\"Execute Workflow Trigger\"].json.pushName || '' }}\",\n  \"message\": \"{{ $node[\"Execute Workflow Trigger\"].json.message }}\",\n  \"sender\": \"user\"\n}",
+        "jsonBody": "={{ { professional_id: $node[\"Execute Workflow Trigger\"].json.professional.id, patient_phone: $node[\"Execute Workflow Trigger\"].json.phone, patient_name: $node[\"Execute Workflow Trigger\"].json.pushName || '', message: $node[\"Execute Workflow Trigger\"].json.message, sender: \"user\" } }}",
         "options": {}
       },
       "id": "node-save-user-msg-law",
@@ -274,7 +274,7 @@
         "url": "https://www.senz-io.com/api/n8n/chat",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"professional_id\": \"{{ $node[\"Execute Workflow Trigger\"].json.professional.id }}\",\n  \"patient_phone\": \"{{ $node[\"Execute Workflow Trigger\"].json.phone }}\",\n  \"patient_name\": \"{{ $node[\"Execute Workflow Trigger\"].json.pushName || '' }}\",\n  \"message\": \"{{ $node[\"Extract Order Arguments\"].json.reply_text }}\",\n  \"sender\": \"assistant\"\n}",
+        "jsonBody": "={{ { professional_id: $node[\"Execute Workflow Trigger\"].json.professional.id, patient_phone: $node[\"Execute Workflow Trigger\"].json.phone, patient_name: $node[\"Execute Workflow Trigger\"].json.pushName || '', message: $node[\"Extract Order Arguments\"].json.reply_text, sender: \"assistant\" } }}",
         "options": {}
       },
       "id": "node-save-bot-msg-reply-law",

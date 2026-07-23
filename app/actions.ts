@@ -405,12 +405,12 @@ export async function updateSettings(prevState: unknown, formData: FormData) {
   if (!user) return { error: 'No autenticado' }
 
   const validatedFields = settingsSchema.safeParse({
-    full_name: formData.get('full_name'),
-    clinic_name: formData.get('clinic_name'),
-    specialty: formData.get('specialty'),
-    phone_whatsapp: formData.get('phone_whatsapp'),
-    tone_prompt: formData.get('tone_prompt'),
-    whatsapp_phone_number_id: formData.get('whatsapp_phone_number_id'),
+    full_name: formData.get('full_name') ?? undefined,
+    clinic_name: formData.get('clinic_name') ?? undefined,
+    specialty: formData.get('specialty') ?? undefined,
+    phone_whatsapp: formData.get('phone_whatsapp') ?? undefined,
+    tone_prompt: formData.get('tone_prompt') ?? undefined,
+    whatsapp_phone_number_id: formData.get('whatsapp_phone_number_id') ?? undefined,
   })
 
   if (!validatedFields.success) {

@@ -4,6 +4,7 @@ import { MessageSquare, Phone, CheckCircle, Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/dashboard/EmptyState'
 import { getInitials } from '@/lib/utils'
+import Link from 'next/link'
 
 export const metadata = { title: 'Mensajes' }
 
@@ -111,11 +112,10 @@ export default async function MessagesPage() {
               const hasUnread = conv.unread_count > 0
 
               return (
-                <div
+                <Link
                   key={conv.id}
+                  href={`/dashboard/messages/${conv.id}`}
                   className="flex items-center gap-4 px-5 py-4 hover:bg-slate-900/40 transition-colors cursor-pointer"
-                  role="button"
-                  tabIndex={0}
                   aria-label={`Conversación con ${name}`}
                 >
                   {/* Avatar */}
@@ -164,7 +164,7 @@ export default async function MessagesPage() {
                       )}
                     </div>
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>
