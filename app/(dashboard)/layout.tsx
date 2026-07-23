@@ -35,13 +35,9 @@ export default async function DashboardLayout({
 
   // Onboarding check: if business_type_id is null, load onboarding layout instead
   if (professional && !professional.business_type_id) {
-    const { data: btypes } = await supabase
-      .from('business_types')
-      .select('id, name, label, config')
-    
-    const { OnboardingView } = await import('@/components/dashboard/OnboardingView')
+    const { OnboardingWizard } = await import('@/components/onboarding/OnboardingWizard')
     return (
-      <OnboardingView businessTypes={btypes || []} />
+      <OnboardingWizard />
     )
   }
 
