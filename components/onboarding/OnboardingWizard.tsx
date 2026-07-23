@@ -150,7 +150,7 @@ export function OnboardingWizard() {
               <div className="w-48 h-2 bg-[#1a1a2e] rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] transition-all duration-300"
-                  style={{ width: \`\${(currentProgress / totalSteps) * 100}%\` }}
+                  style={{ width: `${(currentProgress / totalSteps) * 100}%` }}
                 />
               </div>
             </div>
