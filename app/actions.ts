@@ -556,10 +556,11 @@ export async function uploadAvatar(formData: FormData) {
   const ext = file.name.split('.').pop() || 'jpg'
   const filePath = `${user.id}/avatar.${ext}`
 
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const adminSupabase = createAdminClient()
+
   // Ensure 'avatars' bucket exists
   try {
-    const { createAdminClient } = await import('@/lib/supabase/admin')
-    const adminSupabase = createAdminClient()
     const { data: buckets } = await adminSupabase.storage.listBuckets()
     if (!buckets || !buckets.find(b => b.name === 'avatars')) {
       await adminSupabase.storage.createBucket('avatars', { public: true })
@@ -569,7 +570,7 @@ export async function uploadAvatar(formData: FormData) {
   }
 
   // Upload to Supabase Storage (bucket: avatars)
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await adminSupabase.storage
     .from('avatars')
     .upload(filePath, file, {
       upsert: true,
@@ -928,10 +929,11 @@ export async function uploadMenuImage(formData: FormData) {
   const ext = file.name.split('.').pop() || 'jpg'
   const filePath = `${user.id}/menu.${ext}`
 
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const adminSupabase = createAdminClient()
+
   // Ensure 'menus' bucket exists
   try {
-    const { createAdminClient } = await import('@/lib/supabase/admin')
-    const adminSupabase = createAdminClient()
     const { data: buckets } = await adminSupabase.storage.listBuckets()
     if (!buckets || !buckets.find(b => b.name === 'menus')) {
       await adminSupabase.storage.createBucket('menus', { public: true })
@@ -941,7 +943,7 @@ export async function uploadMenuImage(formData: FormData) {
   }
 
   // Upload to Supabase Storage (bucket: menus)
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await adminSupabase.storage
     .from('menus')
     .upload(filePath, file, {
       upsert: true,
