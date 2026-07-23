@@ -73,6 +73,8 @@ export async function POST(req: Request) {
         .insert({
           professional_id,
           patient_id: patientId,
+          patient_phone: patient_phone,
+          patient_name: patient_name || 'Desconocido',
           unread_count: sender === 'user' ? 1 : 0,
         })
         .select('id')
