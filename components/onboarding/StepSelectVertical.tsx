@@ -86,13 +86,19 @@ export function StepSelectVertical({ onSelect }: StepSelectVerticalProps) {
         <div className="bg-[#0F0F1A] border border-[#1a1a2e] rounded-xl p-6 mb-10 max-w-2xl mx-auto animate-in slide-in-from-top-4 fade-in duration-300">
           <h4 className="text-[#F8FAFC] font-medium mb-4">¿Cuál es tu especialidad?</h4>
           <div className="flex flex-col sm:flex-row gap-4">
-            <label className={`flex-1 flex items-center gap-3 p-4 rounded-lg cursor-pointer border transition-colors ${selectedSub === 'medical' ? 'border-[#8B5CF6] bg-[#8B5CF6]/10' : 'border-[#334155] hover:border-[#475569]'}`}>
+            <label 
+              onClick={() => setSelectedSub('medical')}
+              className={`flex-1 flex items-center gap-3 p-4 rounded-lg cursor-pointer border transition-colors ${selectedSub === 'medical' ? 'border-[#8B5CF6] bg-[#8B5CF6]/10' : 'border-[#334155] hover:border-[#475569]'}`}
+            >
               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedSub === 'medical' ? 'border-[#8B5CF6]' : 'border-[#64748B]'}`}>
                 {selectedSub === 'medical' && <div className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6]" />}
               </div>
               <span className="text-[#F8FAFC]">Médico / Consultorio</span>
             </label>
-            <label className={`flex-1 flex items-center gap-3 p-4 rounded-lg cursor-pointer border transition-colors ${selectedSub === 'lawyer' ? 'border-[#8B5CF6] bg-[#8B5CF6]/10' : 'border-[#334155] hover:border-[#475569]'}`}>
+            <label 
+              onClick={() => setSelectedSub('lawyer')}
+              className={`flex-1 flex items-center gap-3 p-4 rounded-lg cursor-pointer border transition-colors ${selectedSub === 'lawyer' ? 'border-[#8B5CF6] bg-[#8B5CF6]/10' : 'border-[#334155] hover:border-[#475569]'}`}
+            >
               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selectedSub === 'lawyer' ? 'border-[#8B5CF6]' : 'border-[#64748B]'}`}>
                 {selectedSub === 'lawyer' && <div className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6]" />}
               </div>
