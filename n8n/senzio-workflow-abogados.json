@@ -53,12 +53,12 @@
         "tableId": "messages",
         "returnAll": false,
         "limit": 10,
-        "matchType": "any",
-        "match": {
-          "matchValues": [
+        "filters": {
+          "conditions": [
             {
               "keyName": "conversation_id",
-              "keyValue": "={{ $('Get Patient History').item.json.conversation_id }}"
+              "condition": "eq",
+              "keyValue": "={{ $node[\"Save User Message\"].json.conversation_id }}"
             }
           ]
         }
@@ -73,6 +73,9 @@
       ],
       "credentials": {
         "supabaseApi": "Supabase account"
+      },
+      "settings": {
+        "alwaysOutputData": true
       }
     },
     {
@@ -246,6 +249,42 @@
       "credentials": {
         "httpHeaderAuth": "WhatsApp Header Auth"
       }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.senz-io.com/api/n8n/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $node[\"Execute Workflow Trigger\"].json.professional.id }}\",\n  \"patient_phone\": \"{{ $node[\"Execute Workflow Trigger\"].json.phone }}\",\n  \"patient_name\": \"{{ $node[\"Execute Workflow Trigger\"].json.pushName || '' }}\",\n  \"message\": \"{{ $node[\"Execute Workflow Trigger\"].json.message }}\",\n  \"sender\": \"user\"\n}",
+        "options": {}
+      },
+      "id": "node-save-user-msg-law",
+      "name": "Save User Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1050,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.senz-io.com/api/n8n/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $node[\"Execute Workflow Trigger\"].json.professional.id }}\",\n  \"patient_phone\": \"{{ $node[\"Execute Workflow Trigger\"].json.phone }}\",\n  \"patient_name\": \"{{ $node[\"Execute Workflow Trigger\"].json.pushName || '' }}\",\n  \"message\": \"{{ $node[\"Extract Order Arguments\"].json.reply_text }}\",\n  \"sender\": \"assistant\"\n}",
+        "options": {}
+      },
+      "id": "node-save-bot-msg-reply-law",
+      "name": "Save Bot Message (Reply)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2350,
+        680
+      ]
     }
   ],
   "connections": {
@@ -253,7 +292,7 @@
       "main": [
         [
           {
-            "node": "Get Patient History",
+            "node": "Save User Message",
             "type": "main",
             "index": 0
           }
@@ -264,7 +303,7 @@
       "main": [
         [
           {
-            "node": "Get Conversation History",
+            "node": "Get Conversation ID",
             "type": "main",
             "index": 0
           }
@@ -360,6 +399,17 @@
         [
           {
             "node": "Send Confirmation WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save User Message": {
+      "main": [
+        [
+          {
+            "node": "Get Conversation History",
             "type": "main",
             "index": 0
           }

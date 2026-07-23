@@ -18,42 +18,6 @@
       "parameters": {
         "resource": "row",
         "operation": "getAll",
-        "tableId": "patients",
-        "returnAll": true,
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "phone_whatsapp",
-              "condition": "eq",
-              "keyValue": "={{ $json.phone }}"
-            },
-            {
-              "keyName": "professional_id",
-              "condition": "eq",
-              "keyValue": "={{ $json.professional.id }}"
-            }
-          ]
-        }
-      },
-      "id": "node-get-patient",
-      "name": "Get Customer History",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        1050,
-        320
-      ],
-      "credentials": {
-        "supabaseApi": "Supabase account"
-      },
-      "settings": {
-        "alwaysOutputData": true
-      }
-    },
-    {
-      "parameters": {
-        "resource": "row",
-        "operation": "getAll",
         "tableId": "messages",
         "returnAll": false,
         "limit": 10,
@@ -62,7 +26,7 @@
             {
               "keyName": "conversation_id",
               "condition": "eq",
-              "keyValue": "={{ $node[\"Get Customer History\"].json.conversation_id ?? '00000000-0000-0000-0000-000000000000' }}"
+              "keyValue": "={{ $node[\"Save User Message\"].json.conversation_id }}"
             }
           ]
         }
@@ -331,6 +295,42 @@
       "credentials": {
         "httpHeaderAuth": "WhatsApp Header Auth"
       }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.senz-io.com/api/n8n/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $node[\"Execute Workflow Trigger\"].json.professional.id }}\",\n  \"patient_phone\": \"{{ $node[\"Execute Workflow Trigger\"].json.phone }}\",\n  \"patient_name\": \"{{ $node[\"Execute Workflow Trigger\"].json.pushName || '' }}\",\n  \"message\": \"{{ $node[\"Execute Workflow Trigger\"].json.message }}\",\n  \"sender\": \"user\"\n}",
+        "options": {}
+      },
+      "id": "node-save-user-msg",
+      "name": "Save User Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1050,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.senz-io.com/api/n8n/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $node[\"Execute Workflow Trigger\"].json.professional.id }}\",\n  \"patient_phone\": \"{{ $node[\"Execute Workflow Trigger\"].json.phone }}\",\n  \"patient_name\": \"{{ $node[\"Execute Workflow Trigger\"].json.pushName || '' }}\",\n  \"message\": \"{{ $node[\"Extract Order Arguments\"].json.reply_text }}\",\n  \"sender\": \"assistant\"\n}",
+        "options": {}
+      },
+      "id": "node-save-bot-msg-reply",
+      "name": "Save Bot Message (Reply)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2350,
+        680
+      ]
     }
   ],
   "connections": {
@@ -338,18 +338,7 @@
       "main": [
         [
           {
-            "node": "Get Customer History",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Customer History": {
-      "main": [
-        [
-          {
-            "node": "Get Conversation History",
+            "node": "Save User Message",
             "type": "main",
             "index": 0
           }
@@ -429,7 +418,7 @@
         ],
         [
           {
-            "node": "Send WhatsApp Reply",
+            "node": "Save Bot Message (Reply)",
             "type": "main",
             "index": 0
           }
@@ -482,6 +471,28 @@
         [
           {
             "node": "Send Notification to Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save User Message": {
+      "main": [
+        [
+          {
+            "node": "Get Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Bot Message (Reply)": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
             "type": "main",
             "index": 0
           }
