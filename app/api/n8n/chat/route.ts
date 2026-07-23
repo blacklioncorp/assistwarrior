@@ -18,12 +18,14 @@ export async function POST(req: Request) {
     // 1. Verificar o crear paciente
     let patientId: string
 
-    const { data: existingPatient } = await admin
+    const { data: existingPatient, error: e1 } = await admin
       .from('patients')
       .select('id')
       .eq('professional_id', professional_id)
       .eq('phone_whatsapp', patient_phone)
       .maybeSingle()
+
+    if (e1) throw new Error('Error al buscar paciente: ' + e1.message)
 
     if (existingPatient) {
       patientId = existingPatient.id
@@ -38,29 +40,32 @@ export async function POST(req: Request) {
         .select('id')
         .single()
 
-      if (patientError) throw patientError
+      if (patientError) throw new Error('Error al crear paciente: ' + patientError.message)
       patientId = newPatient.id
     }
 
     // 2. Verificar o crear conversación
     let conversationId: string
 
-    const { data: existingConversation } = await admin
+    const { data: existingConversation, error: e2 } = await admin
       .from('conversations')
       .select('id, unread_count')
       .eq('professional_id', professional_id)
       .eq('patient_id', patientId)
       .maybeSingle()
+      
+    if (e2) throw new Error('Error al buscar conversación: ' + e2.message)
 
     if (existingConversation) {
       conversationId = existingConversation.id
       
       // Si el mensaje es del usuario, incrementar unread_count
       if (sender === 'user') {
-        await admin
+        const { error: e3 } = await admin
           .from('conversations')
           .update({ unread_count: (existingConversation.unread_count ?? 0) + 1 })
           .eq('id', conversationId)
+        if (e3) throw new Error('Error al actualizar unread_count: ' + e3.message)
       }
     } else {
       const { data: newConversation, error: convError } = await admin
@@ -73,7 +78,7 @@ export async function POST(req: Request) {
         .select('id')
         .single()
 
-      if (convError) throw convError
+      if (convError) throw new Error('Error al crear conversación: ' + convError.message)
       conversationId = newConversation.id
     }
 
@@ -87,13 +92,13 @@ export async function POST(req: Request) {
         created_at: new Date().toISOString(),
       })
 
-    if (msgError) throw msgError
+    if (msgError) throw new Error('Error al guardar mensaje: ' + msgError.message)
 
     return NextResponse.json({ success: true, conversation_id: conversationId })
-  } catch (err: unknown) {
-    console.error('[n8n/chat POST]', err instanceof Error ? err.message : String(err))
+  } catch (err: any) {
+    console.error('[n8n/chat POST]', err.message)
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor al guardar mensaje' },
+      { success: false, error: err.message, stack: err.stack },
       { status: 500 }
     )
   }
