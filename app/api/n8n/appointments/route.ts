@@ -205,6 +205,7 @@ export async function POST(req: Request) {
 
       await admin.from('messages').insert({
         conversation_id: conversation.id,
+        professional_id: professional_id,
         sender: 'system',
         content: `Cita agendada para el ${date} a las ${time}: ${reason}`,
         created_at: new Date().toISOString(),
@@ -225,6 +226,7 @@ export async function POST(req: Request) {
       if (newConversation) {
         await admin.from('messages').insert({
           conversation_id: newConversation.id,
+          professional_id: professional_id,
           sender: 'system',
           content: `Cita agendada para el ${date} a las ${time}: ${reason}`,
           created_at: new Date().toISOString(),
