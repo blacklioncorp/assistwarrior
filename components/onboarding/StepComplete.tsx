@@ -18,7 +18,7 @@ export function StepComplete({ vertical, data, onFinish }: StepCompleteProps) {
   // Textos y configuraciones por vertical
   let title = "¡Tu asistente está listo!"
   let subtitle = ""
-  let items = []
+  let items: { label: string; value: string; status: 'done' | 'warning' }[] = []
 
   if (vertical === 'restaurant') {
     title = "¡Tu asistente de pedidos está listo!"
