@@ -57,10 +57,16 @@ export function OnboardingWizard() {
 
   const handleFinish = async () => {
     try {
-      await completeOnboarding({ vertical: state.vertical, data: state.data })
-    } catch (error) {
+      const res = await completeOnboarding({ vertical: state.vertical, data: state.data })
+      if (res?.error) {
+        alert(res.error)
+        return false
+      }
+      return true
+    } catch (error: any) {
       console.error('Error completing onboarding:', error)
-      alert('Hubo un error al guardar tu configuración. Por favor intenta de nuevo.')
+      alert('Hubo un error al guardar tu configuración: ' + (error.message || 'Intenta de nuevo.'))
+      return false
     }
   }
 

@@ -544,7 +544,8 @@ export async function completeOnboarding(payload: { vertical: string | null; dat
       business_type_id: btype.id,
       full_name: data.full_name || data.business_name || 'Nuevo Usuario',
       clinic_name: data.clinic_name || data.business_name || '',
-      whatsapp_phone_number: data.whatsapp_phone_number || '',
+      phone_whatsapp: data.whatsapp_phone_number || '',
+      ...(data.whatsapp_meta_id ? { whatsapp_phone_number_id: data.whatsapp_meta_id } : {}),
       tone_prompt: data.ai_tone || (vertical === 'restaurant' ? 'Sé rápido y servicial.' : 'Sé profesional y empático.'),
       business_config
     })

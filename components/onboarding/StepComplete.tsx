@@ -4,7 +4,7 @@ import { OnboardingImage } from './OnboardingImage'
 interface StepCompleteProps {
   vertical: 'restaurant' | 'medical' | 'lawyer'
   data: Record<string, any>
-  onFinish: () => void
+  onFinish: () => Promise<boolean | void>
 }
 
 export function StepComplete({ vertical, data, onFinish }: StepCompleteProps) {
@@ -12,7 +12,10 @@ export function StepComplete({ vertical, data, onFinish }: StepCompleteProps) {
 
   const handleFinish = async () => {
     setIsSubmitting(true)
-    await onFinish()
+    const success = await onFinish()
+    if (!success) {
+      setIsSubmitting(false)
+    }
   }
 
   // Textos y configuraciones por vertical
