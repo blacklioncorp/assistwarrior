@@ -75,7 +75,11 @@ export function StepMedicalBasic({ onNext, onBack }: StepMedicalBasicProps) {
             <label className="block text-sm font-medium text-[#F8FAFC] mb-3">Duración estándar de la consulta</label>
             <div className="flex flex-wrap gap-4">
               {['15', '30', '45', '60'].map(mins => (
-                <label key={mins} className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer border transition-colors ${duration === mins ? 'border-[#06B6D4] bg-[#06B6D4]/10' : 'border-[#334155] bg-[#0F0F1A] hover:border-[#475569]'}`}>
+                <label 
+                  key={mins} 
+                  onClick={() => setDuration(mins)}
+                  className={`flex-1 min-w-[100px] flex items-center justify-center gap-2 p-3 rounded-lg cursor-pointer border transition-colors ${duration === mins ? 'border-[#06B6D4] bg-[#06B6D4]/10' : 'border-[#334155] bg-[#0F0F1A] hover:border-[#475569]'}`}
+                >
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${duration === mins ? 'border-[#06B6D4]' : 'border-[#64748B]'}`}>
                     {duration === mins && <div className="w-2 h-2 rounded-full bg-[#06B6D4]" />}
                   </div>

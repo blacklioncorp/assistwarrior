@@ -46,13 +46,12 @@ export function StepWorkingHours({ initialData, onNext, onBack }: StepWorkingHou
       <div className="bg-[#0F0F1A] border border-[#1a1a2e] rounded-xl p-6 mb-10 divide-y divide-[#1a1a2e]">
         {Object.entries(hours).map(([day, config]) => (
           <div key={day} className="py-4 flex items-center justify-between gap-4">
-            <label className="flex items-center gap-3 w-32 cursor-pointer">
+            <div className="flex items-center gap-3 w-32 cursor-pointer" onClick={() => handleToggle(day)}>
               <div className={`relative w-10 h-5 rounded-full transition-colors ${config.enabled ? 'bg-[#8B5CF6]' : 'bg-[#334155]'}`}>
                 <div className={`absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform ${config.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
               </div>
-              <input type="checkbox" className="hidden" checked={config.enabled} onChange={() => handleToggle(day)} />
               <span className="text-[#F8FAFC] font-medium">{DAYS_ES[day]}</span>
-            </label>
+            </div>
 
             <div className={`flex items-center gap-3 transition-opacity ${config.enabled ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
               <input 

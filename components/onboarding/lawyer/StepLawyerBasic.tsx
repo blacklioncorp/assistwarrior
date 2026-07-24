@@ -88,7 +88,11 @@ export function StepLawyerBasic({ onNext, onBack }: StepLawyerBasicProps) {
             <label className="block text-sm font-medium text-[#F8FAFC] mb-3">Modalidades de atención</label>
             <div className="space-y-3">
               {MODALITIES.map(mode => (
-                <label key={mode.id} className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer border transition-colors ${modalities.includes(mode.id) ? 'border-[#06B6D4] bg-[#06B6D4]/10' : 'border-[#334155] bg-[#0F0F1A] hover:border-[#475569]'}`}>
+                <label 
+                  key={mode.id} 
+                  onClick={() => toggleModality(mode.id)}
+                  className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer border transition-colors ${modalities.includes(mode.id) ? 'border-[#06B6D4] bg-[#06B6D4]/10' : 'border-[#334155] bg-[#0F0F1A] hover:border-[#475569]'}`}
+                >
                   <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${modalities.includes(mode.id) ? 'border-[#06B6D4] bg-[#06B6D4]' : 'border-[#64748B]'}`}>
                     {modalities.includes(mode.id) && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
                   </div>
