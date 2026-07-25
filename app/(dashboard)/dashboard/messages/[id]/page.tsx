@@ -18,7 +18,7 @@ export default async function ConversationPage({ params }: { params: { id: strin
     .select('id, patient_name, patient_phone')
     .eq('id', conversationId)
     .eq('professional_id', user.id)
-    .single()
+    .maybeSingle()
 
   if (!conversation) {
     redirect('/dashboard/messages')
@@ -38,7 +38,8 @@ export default async function ConversationPage({ params }: { params: { id: strin
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
 
-  const name = conversation.patient_name ?? conversation.patient_phone
+  const isUnknown = !conversation.patient_name || conversation.patient_name === 'Desconocido'
+  const name = isUnknown ? conversation.patient_phone : conversation.patient_name
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl border border-slate-900 bg-[#0F0F1A] rounded-2xl overflow-hidden shadow-card">

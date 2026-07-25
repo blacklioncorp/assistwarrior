@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     // 3. Verify professional exists, is active and has a valid plan
     const { data: professional, error: profError } = await admin
       .from('professionals')
-      .select('id, is_active, plan_status, full_name')
+      .select('id, is_active, plan_status, full_name, business_type:business_types(name)')
       .eq('id', professional_id)
       .maybeSingle()
 
@@ -179,12 +179,17 @@ export async function POST(req: Request) {
 
     if (apptError) throw apptError
 
+    const businessTypeName = (professional.business_type as { name?: string } | null)?.name
+    const isRestaurant = businessTypeName === 'restaurant'
+    const activityTitle = isRestaurant ? `Pedido registrado para ${resolvedPatientName}` : `Cita agendada para ${resolvedPatientName}`
+    const activityDesc = isRestaurant ? `Orden vía ${channel} el ${date} a las ${time}` : `Consulta vía ${channel} el ${date} a las ${time}`
+
     // 9. Insert activity log
     await admin.from('activity_log').insert({
       professional_id,
       type: 'appointment_booked',
-      title: `Cita agendada para ${resolvedPatientName}`,
-      description: `Consulta vía ${channel} el ${date} a las ${time}`,
+      title: activityTitle,
+      description: activityDesc,
       related_id: appointment.id,
       created_at: new Date().toISOString(),
     })
@@ -208,7 +213,9 @@ export async function POST(req: Request) {
         professional_id: professional_id,
         sender: 'system',
         direction: 'outbound',
-        content: `Cita agendada para el ${date} a las ${time}: ${reason}`,
+        content: isRestaurant 
+          ? `Pedido registrado el ${date} a las ${time}: ${reason}` 
+          : `Cita agendada para el ${date} a las ${time}: ${reason}`,
         created_at: new Date().toISOString(),
       })
     } else {
@@ -230,7 +237,9 @@ export async function POST(req: Request) {
           professional_id: professional_id,
           sender: 'system',
           direction: 'outbound',
-          content: `Cita agendada para el ${date} a las ${time}: ${reason}`,
+          content: isRestaurant 
+            ? `Pedido registrado el ${date} a las ${time}: ${reason}` 
+            : `Cita agendada para el ${date} a las ${time}: ${reason}`,
           created_at: new Date().toISOString(),
         })
       }
