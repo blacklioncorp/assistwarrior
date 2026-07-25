@@ -255,6 +255,17 @@ export default async function DashboardPage() {
                 const config = activityTypeConfig[activity.type] ?? activityTypeConfig.appointment_booked
                 const Icon = config.icon
 
+                let displayTitle = activity.title
+                let displayDesc = activity.description
+                if (isRestaurant) {
+                  displayTitle = displayTitle
+                    .replace('Cita agendada', 'Pedido registrado')
+                    .replace('Cita cancelada', 'Pedido cancelado')
+                  if (displayDesc) {
+                    displayDesc = displayDesc.replace('Consulta', 'Orden')
+                  }
+                }
+
                 return (
                   <div key={activity.id} className="flex items-start gap-3">
                     <div
@@ -264,11 +275,11 @@ export default async function DashboardPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-200 leading-snug">
-                        {activity.title}
+                        {displayTitle}
                       </p>
-                      {activity.description && (
+                      {displayDesc && (
                         <p className="text-xs text-slate-500 truncate mt-0.5">
-                          {activity.description}
+                          {displayDesc}
                         </p>
                       )}
                       <p className="text-[10px] text-slate-600 mt-1">
