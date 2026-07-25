@@ -37,6 +37,15 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
 
+  const { data: prof } = await supabase
+    .from('professionals')
+    .select('business_type:business_types(name)')
+    .eq('id', user.id)
+    .single()
+
+  const businessTypeName = (prof?.business_type as { name?: string } | null)?.name ?? ''
+  const isRestaurant = businessTypeName === 'restaurant'
+
   const isUnknown = !conversation.patient_name || conversation.patient_name === 'Desconocido'
   const name = (isUnknown ? conversation.patient_phone : conversation.patient_name) ?? 'Desconocido'
 
@@ -77,7 +86,11 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
               }`}>
                 
                 {/* Optional: Add a small icon to distinguish bot vs manual if needed, but simple is better */}
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+                <p className="whitespace-pre-wrap">
+                  {isRestaurant && msg.content
+                    ? msg.content.replace('Cita agendada', 'Pedido registrado').replace('Cita cancelada', 'Pedido cancelado')
+                    : msg.content}
+                </p>
                 
                 <div className={`flex items-center justify-end gap-1 mt-1 ${isMe ? 'text-emerald-400/80' : 'text-slate-500'}`}>
                   <span className="text-[10px]">{time}</span>

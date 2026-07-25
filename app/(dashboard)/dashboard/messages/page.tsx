@@ -156,7 +156,9 @@ export default async function MessagesPage() {
                           hasUnread ? 'text-slate-300 font-semibold' : 'text-slate-500'
                         }`}
                       >
-                        {conv.last_message_preview ?? 'Sin mensajes aún'}
+                        {isRestaurant && conv.last_message_preview
+                          ? conv.last_message_preview.replace('Cita agendada', 'Pedido registrado').replace('Cita cancelada', 'Pedido cancelado')
+                          : (conv.last_message_preview ?? 'Sin mensajes aún')}
                       </p>
                       {hasUnread && (
                         <span className="shrink-0 flex h-5 w-5 items-center justify-center rounded-full bg-purple-600 text-[10px] font-bold text-white">
