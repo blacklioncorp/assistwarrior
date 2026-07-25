@@ -39,7 +39,7 @@ export default async function ConversationPage({ params }: { params: { id: strin
     .order('created_at', { ascending: true })
 
   const isUnknown = !conversation.patient_name || conversation.patient_name === 'Desconocido'
-  const name = isUnknown ? conversation.patient_phone : conversation.patient_name
+  const name = (isUnknown ? conversation.patient_phone : conversation.patient_name) ?? 'Desconocido'
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] max-w-4xl border border-slate-900 bg-[#0F0F1A] rounded-2xl overflow-hidden shadow-card">

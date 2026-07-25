@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/utils/client'
+import { createClient } from '@/lib/supabase/client'
 import { formatTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, Clock, XCircle, ChefHat, Phone, MapPin, CreditCard } from 'lucide-react'

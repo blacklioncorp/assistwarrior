@@ -107,7 +107,7 @@ export default async function MessagesPage() {
           <div className="divide-y divide-slate-900">
             {convs.map((conv) => {
               const isUnknown = !conv.patient_name || conv.patient_name === 'Desconocido'
-              const name = isUnknown ? conv.patient_phone : conv.patient_name
+              const name = (isUnknown ? conv.patient_phone : conv.patient_name) ?? 'Desconocido'
               const initials = getInitials(name)
               const avatarColor = getAvatarColor(name)
               const hasUnread = conv.unread_count > 0
