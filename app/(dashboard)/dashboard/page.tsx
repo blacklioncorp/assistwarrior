@@ -174,7 +174,7 @@ export default async function DashboardPage() {
               )}
             </div>
             <a
-              href="/dashboard/appointments"
+              href={isRestaurant ? "/dashboard/orders" : "/dashboard/appointments"}
               className="text-xs text-cyan-400 hover:text-cyan-300 font-medium hover:underline transition-colors"
             >
               Ver todas →

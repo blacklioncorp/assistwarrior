@@ -1,0 +1,391 @@
+{
+  "name": "Senzio - Restaurante / Comercio v3 (Memoria + Impresión + Maps)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL }}/api/n8n/chat",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Execute Workflow Trigger').item.json.professional.id }}\",\n  \"patient_phone\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"message\": \"{{ $('Execute Workflow Trigger').item.json.message }}\",\n  \"direction\": \"inbound\",\n  \"sender\": \"user\"\n}",
+        "options": {}
+      },
+      "id": "node-register-message",
+      "name": "Registrar mensaje entrante (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [450, 300],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableId": "messages",
+        "returnAll": false,
+        "limit": 10,
+        "filters": {
+          "conditions": [
+            {
+              "field": "conversation_id",
+              "operator": "eq",
+              "value": "={{ $('Registrar mensaje entrante (API)').item.json.conversation_id }}"
+            }
+          ]
+        },
+        "sort": {
+          "field": "created_at",
+          "direction": "desc"
+        },
+        "options": {
+          "alwaysOutputData": true
+        }
+      },
+      "id": "node-get-history",
+      "name": "Get Message History",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "supabaseApi": "Supabase account"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const trigger = $('Execute Workflow Trigger').item.json;\nconst apiResponse = $('Registrar mensaje entrante (API)').item.json;\nconst historyItems = $('Get Message History').all();\n\nconst professional = trigger.professional;\nconst incomingMessage = trigger.message;\nconst incomingPhone = trigger.phone;\nconst businessPhoneId = trigger.businessPhoneId;\n\nconst businessName = professional.full_name || 'el negocio';\nconst businessConfig = professional.business_config || {};\nconst btConfig = professional.business_types?.config || {};\nconst tonePrompt = professional.tone_prompt || '';\n\n// ── Datos bancarios desde business_config ──\nconst clabe = businessConfig.clabe || null;\nconst bancoBeneficiario = businessConfig.banco_beneficiario || null;\nconst nombreBeneficiario = businessConfig.nombre_beneficiario || null;\nconst printNodePrinterId = businessConfig.printnode_printer_id || null;\nconst printNodeApiKey = businessConfig.printnode_api_key || null;\n\n// ── Construir menú como texto ──\nconst menuItems = businessConfig.menu || [];\nlet menuTexto = 'El menú no está configurado aún.';\nif (menuItems.length > 0) {\n  menuTexto = menuItems.map(cat => {\n    const platillos = (cat.platillos || [])\n      .filter(p => p.disponible !== false)\n      .map(p => `  - ${p.nombre}: $${p.precio} (máx. ${p.max_piezas} piezas)`)\n      .join('\\n');\n    return `*${cat.categoria}:*\\n${platillos}`;\n  }).join('\\n\\n');\n}\n\n// ── Horario y estado abierto/cerrado ──\nconst workingHours = businessConfig.working_hours || btConfig.working_hours || {};\nconst diasTexto = Object.entries(workingHours)\n  .map(([dia, h]) => `${dia}: ${h.start} - ${h.end}`)\n  .join(', ');\n\nconst ahora = new Date();\nconst diasSemana = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];\nconst diaActual = diasSemana[ahora.getDay()];\nconst horarioHoy = workingHours[diaActual];\nlet estaAbierto = true;\nif (horarioHoy) {\n  const [hA, mA] = horarioHoy.start.split(':').map(Number);\n  const [hC, mC] = horarioHoy.end.split(':').map(Number);\n  const minAhora = ahora.getHours() * 60 + ahora.getMinutes();\n  estaAbierto = minAhora >= (hA * 60 + mA) && minAhora <= (hC * 60 + mC);\n}\n\n// ── Instrucción de transferencia ──\nconst instruccionTransferencia = clabe\n  ? `9. PAGO POR TRANSFERENCIA:\n   Si el cliente elige pagar por transferencia, proporciona INMEDIATAMENTE estos datos bancarios ANTES de ejecutar Create_Order:\n   🏦 CLABE: ${clabe}${bancoBeneficiario ? '\\n   Banco: ' + bancoBeneficiario : ''}${nombreBeneficiario ? '\\n   Beneficiario: ' + nombreBeneficiario : ''}\n   Después de dar los datos, pide al cliente que confirme cuando haya transferido. Cuando confirme, ejecuta Create_Order normalmente.`\n  : `9. PAGO POR TRANSFERENCIA:\n   Si el cliente elige transferencia, indícale que el negocio le enviará los datos bancarios. Ejecuta Create_Order normalmente.`;\n\n// ── System prompt ──\nconst systemPrompt = estaAbierto\n  ? `Eres el asistente de pedidos de \"${businessName}\". ${tonePrompt}\\n\\nMENÚ DISPONIBLE:\\n${menuTexto}\\n\\nHORARIO: ${diasTexto || 'Consulta directamente con el negocio'}\\n\\nINSTRUCCIONES CRÍTICAS:\\n1. REVISA EL HISTORIAL COMPLETO antes de responder. Si el cliente ya mencionó platillos en mensajes anteriores, ese pedido sigue activo. NO lo olvides.\\n2. NUNCA vuelvas a mostrar el menú completo si el cliente ya tiene platillos confirmados en el historial.\\n3. Si ya tienes platillos + nombre + tipo de entrega + método de pago → ejecuta Create_Order INMEDIATAMENTE.\\n4. Si tienes platillos pero faltan datos → pregunta SOLO por los datos que faltan.\\n5. PRESENTACIÓN DEL MENÚ:\\n   - Por defecto SIEMPRE entrega el menú como texto formateado.\\n   - Mándame el menú, qué tienen, qué venden, qué hay = responder con TEXTO SIEMPRE.\\n   - SOLO ejecuta Send_Menu_Image si el usuario usa palabras EXACTAS: foto, imagen, foto del menú, menú en imagen, catálogo en foto.\\n   - Si ya enviaste la imagen, NO la mandes de nuevo.\\n6. Sé conciso — máximo 4 oraciones por respuesta.\\n7. Responde siempre en español.\\n8. ENTREGA A DOMICILIO — DIRECCIÓN COMPLETA:\\n   Si el cliente elige domicilio, recopila OBLIGATORIAMENTE:\\n   - Calle y número exterior (ej. Zaragoza 31)\\n   - Colonia (ej. Centro)\\n   - Referencias (ej. Casa azul, portón negro)\\n   Solo ejecuta Create_Order cuando tengas los 3 datos.\\n${instruccionTransferencia}`\n  : `Eres el asistente de \"${businessName}\". Estamos cerrados. Horario: ${diasTexto}. Informa amablemente al cliente y dile cuándo puede volver a escribir.`;\n\n// ── Formatear historial con roles correctos para OpenAI ──\nconst historial = historyItems\n  .filter(m => m.json && m.json.content)\n  .sort((a, b) => new Date(a.json.created_at).getTime() - new Date(b.json.created_at).getTime())\n  .map(m => ({\n    role: m.json.direction === 'inbound' ? 'user' : 'assistant',\n    content: m.json.content\n  }))\n  .slice(0, -1);\n\nconst openaiMessages = [\n  { role: 'system', content: systemPrompt },\n  ...historial,\n  { role: 'user', content: incomingMessage }\n];\n\nreturn [{\n  json: {\n    openaiMessages,\n    professional,\n    incoming: { phone: incomingPhone, message: incomingMessage, businessPhoneId },\n    estaAbierto,\n    notificationPhone: businessConfig.orders_notification_phone || null,\n    businessName,\n    menuTexto,\n    conversation_id: apiResponse.conversation_id,\n    patient_id: apiResponse.patient_id,\n    printnode_printer_id: printNodePrinterId,\n    printnode_api_key: printNodeApiKey\n  }\n}];"
+      },
+      "id": "node-build-prompt",
+      "name": "Build OpenAI Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": {{ JSON.stringify($json.openaiMessages) }},\n  \"tools\": [\n    {\n      \"type\": \"function\",\n      \"function\": {\n        \"name\": \"Create_Order\",\n        \"description\": \"Registra el pedido cuando el cliente ha confirmado TODOS los detalles: platillos, nombre, tipo de entrega, dirección completa (si es domicilio) y método de pago.\",\n        \"parameters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"client_name\": { \"type\": \"string\", \"description\": \"Nombre del cliente\" },\n            \"order_details\": { \"type\": \"string\", \"description\": \"Descripción completa del pedido con cantidades y platillos\" },\n            \"delivery_type\": { \"type\": \"string\", \"description\": \"recoger o domicilio\" },\n            \"delivery_address\": { \"type\": \"string\", \"description\": \"Dirección completa: Calle, Número, Colonia y Referencias. Si es para recoger, valor: para recoger\" },\n            \"payment_method\": { \"type\": \"string\", \"description\": \"efectivo, tarjeta o transferencia\" },\n            \"requested_time\": { \"type\": \"string\", \"description\": \"Hora estimada ISO 8601. Si no especifica, NOW + 30 min.\" }\n          },\n          \"required\": [\"client_name\", \"order_details\", \"delivery_type\", \"delivery_address\", \"payment_method\", \"requested_time\"]\n        }\n      }\n    },\n    {\n      \"type\": \"function\",\n      \"function\": {\n        \"name\": \"Send_Menu_Image\",\n        \"description\": \"Envía la IMAGEN VISUAL del menú. SOLO usar cuando el cliente pide EXPLÍCITAMENTE una imagen o foto usando palabras exactas: foto, imagen, foto del menú, menú en imagen, catálogo en foto. NO usar cuando el cliente pide el menú, qué tienen o qué venden — en esos casos responder con texto directamente.\",\n        \"parameters\": {\n          \"type\": \"object\",\n          \"properties\": {\n            \"reason\": { \"type\": \"string\", \"description\": \"Palabra exacta que usó el cliente para pedir la imagen\" }\n          },\n          \"required\": [\"reason\"]\n        }\n      }\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "node-4",
+      "name": "OpenAI Restaurant Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1050, 300],
+      "credentials": {
+        "httpHeaderAuth": "OpenAI Header Auth"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const agentOutput = $('OpenAI Restaurant Agent').item.json;\nconst buildData = $('Build OpenAI Messages').item.json;\nconst message = agentOutput.choices?.[0]?.message;\nconst toolCalls = message?.tool_calls;\n\nif (toolCalls && toolCalls.length > 0) {\n  const toolName = toolCalls[0].function.name;\n\n  if (toolName === 'Send_Menu_Image') {\n    const reason = JSON.parse(toolCalls[0].function.arguments).reason || '';\n    const palabrasImagen = ['foto', 'imagen', 'visual', 'catálogo'];\n    const mensajeOriginal = buildData.incoming?.message?.toLowerCase() || '';\n    const esRealmenteImagen = palabrasImagen.some(p =>\n      reason.toLowerCase().includes(p) || mensajeOriginal.includes(p)\n    );\n\n    if (esRealmenteImagen) {\n      const menuImageUrl = buildData.professional.business_config?.menu_image_url;\n      return [{\n        json: {\n          has_function: false,\n          is_menu_image: true,\n          menu_image_url: menuImageUrl || null,\n          reply_text: menuImageUrl\n            ? '¡Aquí está nuestro menú visual! 📋'\n            : buildData.menuTexto\n              ? `Aquí tienes nuestro menú:\\n\\n${buildData.menuTexto}`\n              : 'Por el momento no tenemos imagen del menú disponible. Te lo comparto en texto.',\n          professional: buildData.professional,\n          incoming: buildData.incoming,\n          notificationPhone: buildData.notificationPhone,\n          businessName: buildData.businessName,\n          menuTexto: buildData.menuTexto,\n          conversation_id: buildData.conversation_id,\n          printnode_printer_id: buildData.printnode_printer_id,\n          printnode_api_key: buildData.printnode_api_key\n        }\n      }];\n    } else {\n      // GPT activó Send_Menu_Image por error — forzar texto\n      return [{\n        json: {\n          has_function: false,\n          is_menu_image: false,\n          reply_text: `Aquí tienes nuestro menú:\\n\\n${buildData.menuTexto}`,\n          professional: buildData.professional,\n          incoming: buildData.incoming,\n          notificationPhone: buildData.notificationPhone,\n          businessName: buildData.businessName,\n          menuTexto: buildData.menuTexto,\n          conversation_id: buildData.conversation_id,\n          printnode_printer_id: buildData.printnode_printer_id,\n          printnode_api_key: buildData.printnode_api_key\n        }\n      }];\n    }\n  }\n\n  if (toolName === 'Create_Order') {\n    try {\n      const args = JSON.parse(toolCalls[0].function.arguments);\n      const startDate = new Date(args.requested_time);\n      const endDate = new Date(startDate.getTime() + 30 * 60000);\n      return [{\n        json: {\n          has_function: true,\n          is_menu_image: false,\n          client_name: args.client_name,\n          order_details: args.order_details,\n          delivery_type: args.delivery_type,\n          delivery_address: args.delivery_address,\n          payment_method: args.payment_method,\n          requested_time: startDate.toISOString(),\n          end_time: endDate.toISOString(),\n          reply_text: message.content || `¡Pedido recibido! Te confirmamos en un momento, ${args.client_name}.`,\n          professional: buildData.professional,\n          incoming: buildData.incoming,\n          notificationPhone: buildData.notificationPhone,\n          businessName: buildData.businessName,\n          menuTexto: buildData.menuTexto,\n          conversation_id: buildData.conversation_id,\n          printnode_printer_id: buildData.printnode_printer_id,\n          printnode_api_key: buildData.printnode_api_key\n        }\n      }];\n    } catch (e) {\n      return [{ json: {\n        has_function: false,\n        is_menu_image: false,\n        reply_text: message?.content || 'Hubo un problema procesando tu pedido. ¿Puedes repetirlo?',\n        professional: buildData.professional,\n        incoming: buildData.incoming,\n        notificationPhone: buildData.notificationPhone,\n        businessName: buildData.businessName,\n        menuTexto: buildData.menuTexto,\n        conversation_id: buildData.conversation_id,\n        printnode_printer_id: buildData.printnode_printer_id,\n        printnode_api_key: buildData.printnode_api_key\n      }}];\n    }\n  }\n}\n\nreturn [{\n  json: {\n    has_function: false,\n    is_menu_image: false,\n    reply_text: message?.content || 'Hubo un problema. ¿Puedes repetir tu pedido?',\n    professional: buildData.professional,\n    incoming: buildData.incoming,\n    notificationPhone: buildData.notificationPhone,\n    businessName: buildData.businessName,\n    menuTexto: buildData.menuTexto,\n    conversation_id: buildData.conversation_id,\n    printnode_printer_id: buildData.printnode_printer_id,\n    printnode_api_key: buildData.printnode_api_key\n  }\n}];"
+      },
+      "id": "node-9",
+      "name": "Extract Order Arguments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.has_function }}", "value2": true }
+          ]
+        }
+      },
+      "id": "node-has-order",
+      "name": "Has Complete Order?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://assistwarrior-two.vercel.app/api/n8n/appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $json.professional.id }}\",\n  \"patient_phone\": \"{{ $json.incoming.phone }}\",\n  \"patient_name\": \"{{ $json.client_name }}\",\n  \"date\": \"{{ $json.requested_time.split('T')[0] }}\",\n  \"time\": \"{{ $json.requested_time.split('T')[1].slice(0,5) }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ $json.order_details }} | {{ $json.delivery_type }} | Pago: {{ $json.payment_method }} | Entrega: {{ $json.delivery_address }}\",\n  \"channel\": \"whatsapp\"\n}",
+        "options": {}
+      },
+      "id": "node-save-order",
+      "name": "Save Order (API)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1650, 120],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const args = $('Extract Order Arguments').item.json;\nconst hora = new Date(args.requested_time).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });\n\nconst entregaTexto = args.delivery_type === 'domicilio'\n  ? `🚚 *Entrega a domicilio:* ${args.delivery_address}`\n  : `🏪 *Para recoger en sucursal*`;\n\nconst confirmacion = `✅ *¡Pedido confirmado!*\\n\\n📋 *Tu pedido:*\\n${args.order_details}\\n\\n${entregaTexto}\\n💳 *Pago:* ${args.payment_method}\\n⏰ *Tiempo estimado:* ${hora}\\n\\nGracias por tu preferencia. Si tienes alguna duda escríbenos.`;\n\nreturn [{ json: { confirmation_message: confirmacion, ...args } }];"
+      },
+      "id": "node-build-confirm",
+      "name": "Build Order Confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1850, 120]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Generar Ticket de Impresión (formato 58mm/80mm) ──\nconst args = $json;\nconst hora = new Date(args.requested_time).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });\nconst ordenId = Date.now().toString().slice(-6);\n\nconst sep = '================================';\nconst sepD = '--------------------------------';\n\nconst ticket = [\n  sep,\n  args.businessName.toUpperCase().padStart(20 + Math.floor(args.businessName.length / 2)),\n  sep,\n  `HORA: ${hora}`,\n  `ORDEN #${ordenId}`,\n  sepD,\n  `CLIENTE: ${args.client_name}`,\n  args.delivery_type === 'domicilio'\n    ? `DOMICILIO:\\n${args.delivery_address}`\n    : 'PARA RECOGER',\n  `PAGO: ${args.payment_method.toUpperCase()}`,\n  sepD,\n  'PEDIDO:',\n  args.order_details,\n  sep,\n  ''\n].join('\\n');\n\nreturn [{\n  json: {\n    ...args,\n    ticket_content: ticket,\n    ticket_b64: Buffer.from(ticket).toString('base64'),\n    orden_id: ordenId\n  }\n}];"
+      },
+      "id": "node-gen-ticket",
+      "name": "Generar Ticket de Impresión",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2050, 120]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ !!$json.printnode_printer_id && !!$json.printnode_api_key }}", "value2": true }
+          ]
+        }
+      },
+      "id": "node-has-printnode",
+      "name": "¿PrintNode configurado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2250, 120]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.printnode.com/printjobs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Basic ' + Buffer.from($json.printnode_api_key + ':').toString('base64') }}"
+            },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"printerId\": {{ $json.printnode_printer_id }},\n  \"title\": \"Orden #{{ $json.orden_id }} - {{ $json.client_name }}\",\n  \"contentType\": \"raw_base64\",\n  \"content\": \"{{ $json.ticket_b64 }}\",\n  \"source\": \"Senzio\"\n}",
+        "options": {}
+      },
+      "id": "node-printnode",
+      "name": "Imprimir Ticket (PrintNode)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2450, 60]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extract Order Arguments').item.json.incoming.businessPhoneId + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Extract Order Arguments').item.json.incoming.phone, type: 'text', text: { body: $('Build Order Confirmation').item.json.confirmation_message } }) }}",
+        "options": {}
+      },
+      "id": "node-send-confirm",
+      "name": "Send Confirmation to Client",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2050, 300],
+      "credentials": {
+        "httpHeaderAuth": "WhatsApp Header Auth"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL }}/api/n8n/chat",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $('Extract Order Arguments').item.json.professional.id }}\",\n  \"conversation_id\": \"{{ $('Extract Order Arguments').item.json.conversation_id }}\",\n  \"message\": \"{{ $('Build Order Confirmation').item.json.confirmation_message }}\",\n  \"direction\": \"outbound\",\n  \"sender\": \"ai\"\n}",
+        "options": {}
+      },
+      "id": "node-save-confirm-msg",
+      "name": "Guardar confirmación en historial",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2250, 300],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const args = $('Extract Order Arguments').item.json;\nconst hora = new Date(args.requested_time).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });\nconst notifPhone = args.notificationPhone;\n\nif (!notifPhone) {\n  return [{ json: { skip_notification: true, ...args } }];\n}\n\n// ── Alerta terminal bancaria ──\nconst alertaTerminal = (args.payment_method === 'tarjeta' &&\n                        args.delivery_type === 'domicilio')\n  ? '\\n⚠️ *ENVIAR TERMINAL BANCARIA CON EL REPARTIDOR*'\n  : '';\n\n// ── Enlace Google Maps si es domicilio ──\nlet mapaLink = '';\nif (args.delivery_type === 'domicilio' && args.delivery_address) {\n  const direccionCodificada = encodeURIComponent(args.delivery_address);\n  mapaLink = `\\n📍 *Ver en Maps:* https://maps.google.com/?q=${direccionCodificada}`;\n}\n\nconst entregaLinea = args.delivery_type === 'domicilio'\n  ? `🚚 *Domicilio:* ${args.delivery_address}${mapaLink}`\n  : '🏪 *Para recoger*';\n\nconst msgDueno = `🔔 *NUEVO PEDIDO — ${args.businessName}*\\n\\n👤 *Cliente:* ${args.client_name}\\n📱 *WhatsApp:* ${args.incoming.phone}\\n\\n📋 *Pedido:*\\n${args.order_details}\\n\\n${entregaLinea}\\n💳 *Pago:* ${args.payment_method}\\n⏰ *Hora solicitada:* ${hora}${alertaTerminal}`;\n\nreturn [{ json: { notification_message: msgDueno, notification_phone: notifPhone, skip_notification: false, ...args } }];"
+      },
+      "id": "node-build-notification",
+      "name": "Build Owner Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.skip_notification }}", "value2": true }
+          ]
+        }
+      },
+      "id": "node-skip-notif",
+      "name": "Has Notification Phone?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extract Order Arguments').item.json.incoming.businessPhoneId + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.notification_phone, type: 'text', text: { body: $json.notification_message } }) }}",
+        "options": {}
+      },
+      "id": "node-send-owner",
+      "name": "Send Notification to Owner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2850, 400],
+      "credentials": {
+        "httpHeaderAuth": "WhatsApp Header Auth"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $json.incoming.businessPhoneId + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.incoming.phone, type: 'text', text: { body: $json.reply_text } }) }}",
+        "options": {}
+      },
+      "id": "node-8",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1650, 480],
+      "credentials": {
+        "httpHeaderAuth": "WhatsApp Header Auth"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.APP_URL }}/api/n8n/chat",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"professional_id\": \"{{ $json.professional.id }}\",\n  \"conversation_id\": \"{{ $json.conversation_id }}\",\n  \"message\": \"{{ $json.reply_text }}\",\n  \"direction\": \"outbound\",\n  \"sender\": \"ai\"\n}",
+        "options": {}
+      },
+      "id": "node-save-reply-msg",
+      "name": "Guardar respuesta en historial",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1850, 480],
+      "credentials": {
+        "httpHeaderAuth": "N8N Webhook Secret"
+      }
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [[{ "node": "Registrar mensaje entrante (API)", "type": "main", "index": 0 }]]
+    },
+    "Registrar mensaje entrante (API)": {
+      "main": [[{ "node": "Get Message History", "type": "main", "index": 0 }]]
+    },
+    "Get Message History": {
+      "main": [[{ "node": "Build OpenAI Messages", "type": "main", "index": 0 }]]
+    },
+    "Build OpenAI Messages": {
+      "main": [[{ "node": "OpenAI Restaurant Agent", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Restaurant Agent": {
+      "main": [[{ "node": "Extract Order Arguments", "type": "main", "index": 0 }]]
+    },
+    "Extract Order Arguments": {
+      "main": [[{ "node": "Has Complete Order?", "type": "main", "index": 0 }]]
+    },
+    "Has Complete Order?": {
+      "main": [
+        [{ "node": "Save Order (API)", "type": "main", "index": 0 }],
+        [{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]
+      ]
+    },
+    "Save Order (API)": {
+      "main": [[{ "node": "Build Order Confirmation", "type": "main", "index": 0 }]]
+    },
+    "Build Order Confirmation": {
+      "main": [
+        [{ "node": "Generar Ticket de Impresión", "type": "main", "index": 0 }],
+        [{ "node": "Send Confirmation to Client", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generar Ticket de Impresión": {
+      "main": [[{ "node": "¿PrintNode configurado?", "type": "main", "index": 0 }]]
+    },
+    "¿PrintNode configurado?": {
+      "main": [
+        [{ "node": "Imprimir Ticket (PrintNode)", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Send Confirmation to Client": {
+      "main": [
+        [{ "node": "Guardar confirmación en historial", "type": "main", "index": 0 }],
+        [{ "node": "Build Owner Notification", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Owner Notification": {
+      "main": [[{ "node": "Has Notification Phone?", "type": "main", "index": 0 }]]
+    },
+    "Has Notification Phone?": {
+      "main": [
+        [],
+        [{ "node": "Send Notification to Owner", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send WhatsApp Reply": {
+      "main": [[{ "node": "Guardar respuesta en historial", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  },
+  "tags": [{ "name": "senzio" }, { "name": "restaurante" }, { "name": "v3" }, { "name": "con-memoria" }]
+}

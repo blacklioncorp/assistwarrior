@@ -21,7 +21,7 @@ const postBodySchema = z.object({
 const patchBodySchema = z.object({
   appointment_id: z.string().uuid('appointment_id debe ser un UUID válido'),
   professional_id: z.string().uuid('professional_id debe ser un UUID válido'),
-  action: z.enum(['cancel', 'confirm']),
+  action: z.enum(['cancel', 'confirm', 'complete', 'revert_to_scheduled']),
 })
 
 // ── POST — Agendar cita ───────────────────────────────────────────────────────
@@ -291,19 +291,30 @@ export async function PATCH(req: Request) {
       )
     }
 
-    if (!['scheduled', 'confirmed'].includes(appt.status)) {
+    if (!['scheduled', 'confirmed', 'completed', 'cancelled'].includes(appt.status)) {
       return NextResponse.json(
         { success: false, error: `La cita ya tiene estado "${appt.status}" y no puede modificarse` },
         { status: 409 }
       )
     }
 
-    const newStatus = action === 'cancel' ? 'cancelled' : 'confirmed'
-    const activityType = action === 'cancel' ? 'appointment_cancelled' : 'appointment_confirmed'
-    const activityTitle =
-      action === 'cancel'
-        ? `Cita cancelada para ${appt.patient_name}`
-        : `Cita confirmada para ${appt.patient_name}`
+    let newStatus = 'confirmed'
+    let activityType = 'appointment_confirmed'
+    let activityTitle = `Cita confirmada para ${appt.patient_name}`
+
+    if (action === 'cancel') {
+      newStatus = 'cancelled'
+      activityType = 'appointment_cancelled'
+      activityTitle = `Cita cancelada para ${appt.patient_name}`
+    } else if (action === 'complete') {
+      newStatus = 'completed'
+      activityType = 'appointment_booked' // reusing for simplicity, or we could add 'order_completed' in Supabase later
+      activityTitle = `Pedido completado para ${appt.patient_name}`
+    } else if (action === 'revert_to_scheduled') {
+      newStatus = 'scheduled'
+      activityType = 'appointment_booked'
+      activityTitle = `Pedido regresado a Pendiente para ${appt.patient_name}`
+    }
 
     // 4. Update status
     const { error: updateError } = await admin
