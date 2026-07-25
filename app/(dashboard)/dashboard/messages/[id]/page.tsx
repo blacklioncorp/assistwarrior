@@ -5,12 +5,11 @@ import { ArrowLeft, User, Bot, Check, CheckCheck } from 'lucide-react'
 
 export const metadata = { title: 'Conversación' }
 
-export default async function ConversationPage({ params }: { params: { id: string } }) {
+export default async function ConversationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: conversationId } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-
-  const conversationId = params.id
 
   // Fetch the conversation info
   const { data: conversation } = await supabase

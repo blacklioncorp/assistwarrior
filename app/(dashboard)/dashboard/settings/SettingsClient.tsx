@@ -815,14 +815,6 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
                           className="w-16 bg-[#0F0F1A] border border-slate-800 rounded text-xs text-slate-100 px-2 py-1 focus:outline-none focus:border-purple-500"
                           min={0}
                         />
-                        <span className="text-[10px] text-slate-600">máx</span>
-                        <input
-                          type="number"
-                          value={platillo.max_piezas}
-                          onChange={(e) => updatePlatillo(ci, pi, 'max_piezas', Number(e.target.value))}
-                          className="w-12 bg-[#0F0F1A] border border-slate-800 rounded text-xs text-slate-100 px-2 py-1 focus:outline-none focus:border-purple-500"
-                          min={1}
-                        />
                         <label className="relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full transition-colors"
                           style={{ backgroundColor: platillo.disponible ? '#8B5CF6' : '#1e293b' }}>
                           <input type="checkbox" className="peer sr-only" checked={platillo.disponible}
