@@ -126,7 +126,9 @@ export async function POST(req: Request) {
       patientId = newPatient.id
     }
 
-    const isRestaurant = professional.business_type?.name?.toLowerCase() === 'restaurante' || professional.business_type?.name?.toLowerCase() === 'comercio'
+    const bt = professional.business_type as any
+    const businessTypeName = Array.isArray(bt) ? bt[0]?.name : bt?.name
+    const isRestaurant = businessTypeName?.toLowerCase() === 'restaurante' || businessTypeName?.toLowerCase() === 'comercio' || businessTypeName?.toLowerCase() === 'restaurant'
 
     if (!isRestaurant) {
       // 6. Check blocked_slots overlap
