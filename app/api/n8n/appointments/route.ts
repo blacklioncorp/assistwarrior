@@ -126,38 +126,42 @@ export async function POST(req: Request) {
       patientId = newPatient.id
     }
 
-    // 6. Check blocked_slots overlap
-    const { data: blockedSlots } = await admin
-      .from('blocked_slots')
-      .select('id, title')
-      .eq('professional_id', professional_id)
-      .lt('starts_at', endsAt.toISOString())
-      .gt('ends_at', startsAt.toISOString())
+    const isRestaurant = professional.business_type?.name?.toLowerCase() === 'restaurante' || professional.business_type?.name?.toLowerCase() === 'comercio'
 
-    if (blockedSlots && blockedSlots.length > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `El horario coincide con un bloqueo: "${blockedSlots[0].title}". Elige otro horario.`,
-        },
-        { status: 409 }
-      )
-    }
+    if (!isRestaurant) {
+      // 6. Check blocked_slots overlap
+      const { data: blockedSlots } = await admin
+        .from('blocked_slots')
+        .select('id, title')
+        .eq('professional_id', professional_id)
+        .lt('starts_at', endsAt.toISOString())
+        .gt('ends_at', startsAt.toISOString())
 
-    // 7. Check appointments overlap
-    const { data: collisions } = await admin
-      .from('appointments')
-      .select('id')
-      .eq('professional_id', professional_id)
-      .in('status', ['scheduled', 'confirmed'])
-      .lt('starts_at', endsAt.toISOString())
-      .gt('ends_at', startsAt.toISOString())
+      if (blockedSlots && blockedSlots.length > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `El horario coincide con un bloqueo: "${blockedSlots[0].title}". Elige otro horario.`,
+          },
+          { status: 409 }
+        )
+      }
 
-    if (collisions && collisions.length > 0) {
-      return NextResponse.json(
-        { success: false, error: 'Ya existe una cita en ese horario. Elige otro.' },
-        { status: 409 }
-      )
+      // 7. Check appointments overlap
+      const { data: collisions } = await admin
+        .from('appointments')
+        .select('id')
+        .eq('professional_id', professional_id)
+        .in('status', ['scheduled', 'confirmed'])
+        .lt('starts_at', endsAt.toISOString())
+        .gt('ends_at', startsAt.toISOString())
+
+      if (collisions && collisions.length > 0) {
+        return NextResponse.json(
+          { success: false, error: 'Ya existe una cita en ese horario. Elige otro.' },
+          { status: 409 }
+        )
+      }
     }
 
     // 8. Insert appointment
