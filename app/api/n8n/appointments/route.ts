@@ -183,8 +183,6 @@ export async function POST(req: Request) {
 
     if (apptError) throw apptError
 
-    const businessTypeName = (professional.business_type as { name?: string } | null)?.name
-    const isRestaurant = businessTypeName === 'restaurant'
     const activityTitle = isRestaurant ? `Pedido registrado para ${resolvedPatientName}` : `Cita agendada para ${resolvedPatientName}`
     const activityDesc = isRestaurant ? `Orden vía ${channel} el ${date} a las ${time}` : `Consulta vía ${channel} el ${date} a las ${time}`
 
