@@ -13,22 +13,11 @@ const features = [
 // Custom Senzio Logo SVG
 function SenzioLogo({ className = "h-5 w-5" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="login-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#8B5CF6" />
-          <stop offset="100%" stop-color="#06B6D4" />
-        </linearGradient>
-      </defs>
-      <path 
-        d="M35,25 C45,15 65,15 75,30 C85,45 65,55 50,50 C35,45 15,55 25,70 C35,85 55,85 65,75" 
-        stroke="url(#login-logo-grad)" 
-        strokeWidth="12" 
-        strokeLinecap="round" 
-      />
-      <circle cx="35" cy="25" r="8" fill="#8B5CF6" />
-      <circle cx="65" cy="75" r="8" fill="#06B6D4" />
-    </svg>
+    <img 
+      src="https://fltidvkbnkyfwhiyjtlm.supabase.co/storage/v1/object/public/imagesandlogos/iconlogo.png" 
+      alt="Senzio Icon" 
+      className={className} 
+    />
   )
 }
 

@@ -21,26 +21,13 @@ import {
   CheckCircle,
 } from 'lucide-react'
 
-// Custom Senzio Logo SVG Component
 function SenzioLogo({ className = "h-6 w-6" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="senzio-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#8B5CF6" />
-          <stop offset="100%" stop-color="#06B6D4" />
-        </linearGradient>
-      </defs>
-      <path 
-        d="M35,25 C45,15 65,15 75,30 C85,45 65,55 50,50 C35,45 15,55 25,70 C35,85 55,85 65,75" 
-        stroke="url(#senzio-logo-grad)" 
-        strokeWidth="10" 
-        strokeLinecap="round" 
-      />
-      <circle cx="35" cy="25" r="7" fill="#8B5CF6" />
-      <circle cx="65" cy="75" r="7" fill="#06B6D4" />
-      <circle cx="50" cy="50" r="5" fill="#F8FAFC" />
-    </svg>
+    <img 
+      src="https://fltidvkbnkyfwhiyjtlm.supabase.co/storage/v1/object/public/imagesandlogos/iconlogo.png" 
+      alt="Senzio Icon" 
+      className={className} 
+    />
   )
 }
 
@@ -60,11 +47,11 @@ export default async function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-slate-900 bg-[#05050A]/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-3">
-            <SenzioLogo className="h-7 w-7 animate-pulse-soft" />
-            <span className="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
-              Senzio
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-            </span>
+            <img 
+              src="https://fltidvkbnkyfwhiyjtlm.supabase.co/storage/v1/object/public/imagesandlogos/logo_Senzio_sgg.svg" 
+              alt="Senzio Logo" 
+              className="h-10 w-auto" 
+            />
           </div>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -102,56 +89,77 @@ export default async function LandingPage() {
       <section className="relative overflow-hidden pt-20 pb-24 lg:pt-32 lg:pb-36">
         {/* Glow Effects */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-purple-500/10 blur-[100px]" />
-          <div className="absolute top-1/3 left-1/3 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-cyan-500/10 blur-[120px]" />
+          <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 h-96 w-96 rounded-full bg-purple-500/10 blur-[100px]" />
+          <div className="absolute top-1/3 right-1/4 translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-cyan-500/10 blur-[120px]" />
         </div>
 
-        <div className="relative mx-auto max-w-4xl px-4 lg:px-6 text-center">
-          {/* Badge */}
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/5 px-3.5 py-1.5 text-xs font-semibold text-purple-300">
-            <Sparkles className="h-3.5 w-3.5 text-purple-400" />
-            <span>Agentes de IA conversacional multi-vertical</span>
+        <div className="relative mx-auto max-w-7xl px-4 lg:px-6">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+            {/* Left Column: Text */}
+            <div className="text-left">
+              {/* Badge */}
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/5 px-3.5 py-1.5 text-xs font-semibold text-purple-300">
+                <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+                <span>Agentes de IA conversacional multi-vertical</span>
+              </div>
+
+              <h1 className="text-4xl font-extrabold text-white leading-tight sm:text-5xl lg:text-6xl tracking-tight">
+                Automatiza tu negocio. Atiende, agenda
+                <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-400 to-cyan-400">
+                  y vende por WhatsApp 24/7
+                </span>
+              </h1>
+
+              <p className="mt-6 max-w-xl text-lg text-slate-400 leading-relaxed">
+                Convertimos tus mensajes en citas confirmadas o pedidos listos sin que muevas un solo dedo. Solución lista para usar desde el primer día.
+              </p>
+
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-start gap-3">
+                <Link
+                  href="/login"
+                  id="cta-primary-btn"
+                  className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 px-6 py-3.5 text-base font-semibold text-white shadow-lg hover:shadow-purple-500/20 transition-all active:scale-[0.98]"
+                >
+                  Comenzar gratis
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+                <button
+                  id="cta-demo-btn"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-[#0F0F1A] px-6 py-3.5 text-base font-semibold text-slate-300 shadow-xl hover:bg-[#181829] hover:text-white transition-all"
+                >
+                  <Phone className="h-4 w-4 text-cyan-400" />
+                  Ver demo en vivo
+                </button>
+              </div>
+
+              <p className="mt-4 text-xs text-slate-500">
+                Configuración lista en 5 minutos
+              </p>
+            </div>
+
+            {/* Right Column: Image */}
+            <div className="relative">
+              <img 
+                src="https://fltidvkbnkyfwhiyjtlm.supabase.co/storage/v1/object/public/imagesandlogos/imagen-home.webp" 
+                alt="Senzio App Interface" 
+                className="w-full h-auto object-contain max-w-lg mx-auto lg:max-w-none"
+              />
+            </div>
           </div>
-
-          <h1 className="text-4xl font-extrabold text-white leading-tight sm:text-5xl lg:text-6xl tracking-tight">
-            Automatiza tu negocio con
-            <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-400 to-cyan-400">
-              agentes de IA 24/7
-            </span>
-          </h1>
-
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 leading-relaxed">
-            Senzio despliega agentes autónomos por WhatsApp y llamadas de voz que responden dudas, agendan citas y cierran ventas para despachos de abogados, restaurantes, consultorios y más.
-          </p>
-
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/login"
-              id="cta-primary-btn"
-              className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 px-6 py-3.5 text-base font-semibold text-white shadow-lg hover:shadow-purple-500/20 transition-all active:scale-[0.98]"
-            >
-              Comenzar gratis
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <button
-              id="cta-demo-btn"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-[#0F0F1A] px-6 py-3.5 text-base font-semibold text-slate-300 shadow-xl hover:bg-[#181829] hover:text-white transition-all"
-            >
-              <Phone className="h-4 w-4 text-cyan-400" />
-              Ver demo en vivo
-            </button>
-          </div>
-
-          <p className="mt-4 text-xs text-slate-500">
-            Sin tarjeta de crédito · Configuración lista en 5 minutos
-          </p>
         </div>
       </section>
 
       {/* ── Demo Video Placeholder ── */}
       <section className="pb-24 pt-4 px-4 lg:px-6 relative z-10">
-        <DemoVideo videoUrl={process.env.NEXT_PUBLIC_DEMO_VIDEO_URL} />
+        <video 
+          src="https://fltidvkbnkyfwhiyjtlm.supabase.co/storage/v1/object/public/imagesandlogos/home_video.webm"
+          className="w-full max-w-5xl mx-auto rounded-2xl border border-slate-800 shadow-2xl"
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
       </section>
 
       {/* ── Verticals Section ── */}
@@ -379,8 +387,11 @@ export default async function LandingPage() {
       <footer className="border-t border-slate-900 bg-[#05050A] py-8">
         <div className="mx-auto max-w-6xl px-4 lg:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <SenzioLogo className="h-6 w-6" />
-            <span className="text-sm font-bold text-white">Senzio</span>
+            <img 
+              src="https://fltidvkbnkyfwhiyjtlm.supabase.co/storage/v1/object/public/imagesandlogos/logo_Senzio_sgg.svg" 
+              alt="Senzio Logo" 
+              className="h-8 w-auto" 
+            />
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
             <div className="flex items-center gap-4">
