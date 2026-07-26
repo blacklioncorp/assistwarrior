@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { DemoVideo } from '@/components/landing/DemoVideo'
 import { FaqAccordion } from '@/components/landing/FaqAccordion'
+import { PricingList } from '@/components/landing/PricingList'
 import {
   Calendar,
   MessageSquare,
@@ -408,88 +409,4 @@ export default async function LandingPage() {
   )
 }
 
-async function PricingList() {
-  let plans: any[] = []
-  
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const res = await fetch(`${baseUrl}/api/pricing`, { 
-      next: { revalidate: 3600 } 
-    })
-    
-    if (res.ok) {
-      const data = await res.json()
-      plans = data.plans || []
-    }
-  } catch (error) {
-    console.error("Failed to fetch pricing", error)
-  }
-
-  if (plans.length === 0) {
-    return <div className="text-center text-slate-500">Cargando planes...</div>
-  }
-
-  return (
-    <div className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto">
-      {plans.map((plan) => (
-        <div 
-          key={plan.id} 
-          className={`relative flex flex-col rounded-3xl p-8 border ${plan.es_popular ? 'border-purple-500/50 bg-[#120F24] shadow-2xl shadow-purple-900/20' : 'border-slate-800 bg-[#0F0F1A]'}`}
-        >
-          {plan.es_popular && (
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-purple-500 to-cyan-400 px-4 py-1 text-xs font-bold text-white shadow-lg">
-              Más popular
-            </div>
-          )}
-
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-white">{plan.nombre}</h3>
-            <p className="mt-2 text-sm text-slate-400 h-10">{plan.descripcion}</p>
-          </div>
-
-          <div className="mb-8">
-            {plan.es_contacto ? (
-              <span className="text-4xl font-extrabold text-white">A la medida</span>
-            ) : (
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">${plan.precio_mxn}</span>
-                <span className="text-sm font-medium text-slate-400">/ mes</span>
-              </div>
-            )}
-          </div>
-
-          <ul className="mb-8 flex-1 space-y-4">
-            {Array.isArray(plan.features) && plan.features.map((feature: string, idx: number) => (
-              <li key={idx} className="flex items-start gap-3 text-sm text-slate-300">
-                <CheckCircle className="h-5 w-5 shrink-0 text-cyan-400" />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-
-          {plan.es_contacto ? (
-            <Link
-              href="https://wa.me/5215555555555" // Replace with actual number
-              className="mt-auto block w-full rounded-xl border border-slate-700 bg-transparent px-4 py-3 text-center text-sm font-bold text-white hover:bg-slate-800 transition-colors"
-            >
-              Contactar
-            </Link>
-          ) : (
-            <Link
-              href="/login"
-              className={`mt-auto block w-full rounded-xl px-4 py-3 text-center text-sm font-bold text-white transition-all ${plan.es_popular ? 'bg-gradient-to-r from-purple-600 to-cyan-500 hover:opacity-90' : 'bg-slate-800 hover:bg-slate-700'}`}
-            >
-              Comenzar gratis
-            </Link>
-          )}
-        </div>
-      ))}
-      <div className="md:col-span-3 text-center mt-4">
-        <p className="text-sm text-slate-500">
-          Todos los planes incluyen 14 días de prueba gratis · Sin tarjeta de crédito
-        </p>
-      </div>
-    </div>
-  )
-}
 
