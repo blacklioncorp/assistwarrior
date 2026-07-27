@@ -45,27 +45,27 @@ export function StepWorkingHours({ initialData, onNext, onBack }: StepWorkingHou
 
       <div className="bg-[#0F0F1A] border border-[#1a1a2e] rounded-xl p-6 mb-10 divide-y divide-[#1a1a2e]">
         {Object.entries(hours).map(([day, config]) => (
-          <div key={day} className="py-4 flex items-center justify-between gap-4">
+          <div key={day} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3 w-32 cursor-pointer" onClick={() => handleToggle(day)}>
-              <div className={`relative w-10 h-5 rounded-full transition-colors ${config.enabled ? 'bg-[#8B5CF6]' : 'bg-[#334155]'}`}>
+              <div className={`relative w-10 h-5 rounded-full shrink-0 transition-colors ${config.enabled ? 'bg-[#8B5CF6]' : 'bg-[#334155]'}`}>
                 <div className={`absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform ${config.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
               </div>
               <span className="text-[#F8FAFC] font-medium">{DAYS_ES[day]}</span>
             </div>
 
-            <div className={`flex items-center gap-3 transition-opacity ${config.enabled ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
+            <div className={`flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 transition-opacity w-full sm:w-auto ${config.enabled ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
               <input 
                 type="time" 
                 value={config.start} 
                 onChange={(e) => handleChange(day, 'start', e.target.value)}
-                className="bg-[#05050A] border border-[#334155] rounded-md px-3 py-2 text-[#F8FAFC] focus:border-[#06B6D4] outline-none" 
+                className="bg-[#05050A] border border-[#334155] rounded-md px-2 py-2 sm:px-3 text-[#F8FAFC] focus:border-[#06B6D4] outline-none flex-1 min-w-[100px] text-sm" 
               />
-              <span className="text-[#64748B]">—</span>
+              <span className="text-[#64748B] shrink-0">—</span>
               <input 
                 type="time" 
                 value={config.end} 
                 onChange={(e) => handleChange(day, 'end', e.target.value)}
-                className="bg-[#05050A] border border-[#334155] rounded-md px-3 py-2 text-[#F8FAFC] focus:border-[#06B6D4] outline-none" 
+                className="bg-[#05050A] border border-[#334155] rounded-md px-2 py-2 sm:px-3 text-[#F8FAFC] focus:border-[#06B6D4] outline-none flex-1 min-w-[100px] text-sm" 
               />
             </div>
           </div>

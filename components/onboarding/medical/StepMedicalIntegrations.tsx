@@ -26,7 +26,7 @@ export function StepMedicalIntegrations({ onNext, onBack, onSkip, title = "Conec
   return (
     <div className="w-full max-w-4xl mx-auto py-12 px-6 flex flex-col md:flex-row gap-10 items-start animate-in fade-in duration-500">
       
-      <div className="flex-1 sticky top-8">
+      <div className="flex-1 md:sticky top-8">
         <OnboardingImage 
           src={process.env.NEXT_PUBLIC_IMG_ONBOARDING_WHATSAPP}
           alt="Conectar Integraciones"

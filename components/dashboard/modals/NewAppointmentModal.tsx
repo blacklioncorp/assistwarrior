@@ -211,7 +211,7 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
           </button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] bg-[#0F0F1A] border-slate-900 text-slate-100">
+      <DialogContent className="w-[95vw] max-h-[90vh] overflow-y-auto sm:max-w-[700px] bg-[#0F0F1A] border-slate-900 text-slate-100">
         <DialogHeader>
           <DialogTitle className="text-slate-100 text-lg font-bold">Agendar {titleSingularUpper}</DialogTitle>
           <DialogDescription className="text-slate-400 text-xs">
@@ -345,7 +345,7 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
                 <Textarea 
                   id="notes" 
                   name="notes" 
-                  placeholder="Detalles sobre el pedido, entrega o notas sobre el caso..." 
+                  placeholder="Añade detalles..." 
                   className="min-h-[60px] bg-slate-950 border-slate-800 focus:border-purple-500 text-slate-100"
                 />
               </div>
@@ -368,7 +368,7 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
                 </div>
               )}
 
-              <div className="rounded-xl border border-slate-900 bg-slate-950 p-2 mb-4 shadow-sm text-slate-100">
+              <div className="rounded-xl border border-slate-900 bg-slate-950 p-2 mb-4 shadow-sm text-slate-100 overflow-x-auto flex justify-center">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
@@ -389,7 +389,7 @@ export function NewAppointmentModal({ children, patients, workingHours, blockedS
                     allDayBlocked: 'day-all-blocked',
                     partialBlocked: 'day-partial-blocked',
                   }}
-                  className="mx-auto bg-slate-950 text-slate-100"
+                  className="bg-slate-950 text-slate-100 scale-95 sm:scale-100 origin-center"
                 />
               </div>
 
