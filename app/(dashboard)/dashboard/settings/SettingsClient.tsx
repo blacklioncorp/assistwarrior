@@ -618,6 +618,12 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
             <DarkField label="Nombre completo" id="full_name" defaultValue={professional.full_name ?? ''} />
             <DarkField label="Email" id="email" defaultValue={professional.email} type="email" disabled />
             <DarkField label={labels.businessName} id="clinic_name" defaultValue={professional.clinic_name ?? ''} />
+            <DarkField 
+              label="Dirección / Ubicación" 
+              id="clinic_address" 
+              defaultValue={(professional.business_config?.clinic_address as string | undefined) ?? ''} 
+              placeholder="Ej: Av. Reforma 123, Consultorio 402"
+            />
             {!isRestaurant && (
               <DarkField label={labels.specialty} id="specialty" defaultValue={professional.specialty ?? ''} />
             )}

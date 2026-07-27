@@ -441,7 +441,7 @@ export async function updateSettings(prevState: unknown, formData: FormData) {
 
   // ── Handle business_config fields ──
   // These go into the JSONB business_config column and are merged with existing data.
-  const businessConfigKeys = ['menu', 'modalities', 'orders_notification_phone', 'menu_image_url']
+  const businessConfigKeys = ['menu', 'modalities', 'orders_notification_phone', 'menu_image_url', 'clinic_address']
   const businessConfigUpdates: Record<string, unknown> = {}
 
   for (const key of businessConfigKeys) {
