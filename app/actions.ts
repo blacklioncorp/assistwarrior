@@ -189,16 +189,21 @@ export async function createAppointment(prevState: any, formData: FormData) {
   const end = new Date(start.getTime() + duration_minutes * 60000)
 
   // 1. Working Hours Check
-  const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-  const dayName = daysOfWeek[start.getDay()]
-
   const { data: profInfo } = await supabase
     .from('professionals')
-    .select('working_hours')
+    .select('working_hours, timezone')
     .eq('id', user.id)
     .single()
 
   if (profInfo?.working_hours) {
+    const tz = profInfo.timezone || 'America/Mexico_City'
+    
+    // Get the local day of the week for the professional
+    const dayName = new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      timeZone: tz
+    }).format(start).toLowerCase()
+
     const hours = profInfo.working_hours as Record<string, { start: string; end: string; enabled: boolean }>
     const dayConfig = hours[dayName]
     
@@ -206,17 +211,26 @@ export async function createAppointment(prevState: any, formData: FormData) {
       return { error: 'No tienes consultas habilitadas para este día de la semana.' }
     }
 
-    // Parse working hours "HH:MM"
-    const [startHour, startMin] = dayConfig.start.split(':').map(Number)
-    const [endHour, endMin] = dayConfig.end.split(':').map(Number)
+    // Convert local start time to minutes since midnight
+    const localTimeStr = new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: tz,
+      hour12: false
+    }).format(start)
 
-    const workStart = new Date(start)
-    workStart.setHours(startHour, startMin, 0, 0)
+    const toMinutes = (timeStr: string) => {
+      const [h, m] = timeStr.split(':').map(Number)
+      return h * 60 + m
+    }
 
-    const workEnd = new Date(start)
-    workEnd.setHours(endHour, endMin, 0, 0)
+    const apptMinStart = toMinutes(localTimeStr)
+    const apptMinEnd = apptMinStart + duration_minutes
 
-    if (start < workStart || end > workEnd) {
+    const workMinStart = toMinutes(dayConfig.start)
+    const workMinEnd = toMinutes(dayConfig.end)
+
+    if (apptMinStart < workMinStart || apptMinEnd > workMinEnd) {
       return { error: `La cita debe agendarse dentro de tu horario de atención: ${dayConfig.start} - ${dayConfig.end}` }
     }
   }
