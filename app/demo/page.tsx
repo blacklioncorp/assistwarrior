@@ -39,7 +39,7 @@ export const metadata = {
 }
 
 const CONTACT_EMAIL =
-  process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'contacto@assistwarrior.com'
+  process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'contacto@senz-io.com'
 
 // Only show scheduled/confirmed appointments that fall on today's date
 const today = new Date()

@@ -10,7 +10,8 @@ import {
   uploadAvatar,
   connectIntegration,
   disconnectIntegration,
-  uploadMenuImage
+  uploadMenuImages,
+  deleteMenuImage
 } from '@/app/actions'
 import { SubmitButton } from '@/components/ui/submit-button'
 import {
@@ -207,28 +208,50 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
   // Menu state (restaurant)
   const existingMenu = (professional.business_config?.menu as MenuCategory[] | undefined) ?? []
   const [menuCategories, setMenuCategories] = useState<MenuCategory[]>(existingMenu)
-  const [menuImageUrl, setMenuImageUrl] = useState<string>(
-    (professional.business_config?.menu_image_url as string | undefined) ?? ''
+  const [menuImageUrls, setMenuImageUrls] = useState<string[]>(
+    (professional.business_config?.menu_image_urls as string[] | undefined) ?? 
+    (professional.business_config?.menu_image_url ? [professional.business_config.menu_image_url as string] : [])
   )
   const [menuImageUploading, setMenuImageUploading] = useState(false)
 
   async function handleMenuImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setMenuImageUploading(true)
-    setError(null)
-    const formData = new FormData()
-    formData.append('menu_image', file)
-    const res = await uploadMenuImage(formData)
-    if (res.error) {
-      setError(res.error)
-    } else if (res.success && res.menu_image_url) {
-      setMenuImageUrl(res.menu_image_url)
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2500)
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    if (menuImageUrls.length + files.length > 5) {
+      alert('Solo puedes tener hasta 5 imágenes en tu menú.')
+      return
     }
+
+    setMenuImageUploading(true)
+    const formData = new FormData()
+    Array.from(files).forEach((file) => {
+      formData.append('menu_images', file)
+    })
+    
+    const res = await uploadMenuImages(formData)
+
+    if (res.error) {
+      alert(res.error)
+    } else if (res.success && res.menu_image_urls) {
+      setMenuImageUrls(res.menu_image_urls)
+    }
+    
+    // reset input
+    e.target.value = ''
     setMenuImageUploading(false)
   }
+
+  async function handleMenuImageDelete(urlToDelete: string) {
+    if (!confirm('¿Seguro que deseas eliminar esta imagen?')) return
+    
+    const res = await deleteMenuImage(urlToDelete)
+    if (res.error) {
+      alert(res.error)
+    } else if (res.success && res.menu_image_urls) {
+      setMenuImageUrls(res.menu_image_urls)
+    }
+  }
+
   const [menuSaving, setMenuSaving] = useState(false)
 
   useEffect(() => {
@@ -712,35 +735,50 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
 
           {/* Part 1 — Menu image */}
           <div className="card-dark p-5 space-y-3">
-            <p className="text-xs font-semibold text-slate-300">Imagen del menú</p>
-            <p className="text-[11px] text-slate-500">Esta imagen se muestra al cliente cuando pregunta por el menú.</p>
-            {menuImageUrl ? (
-              <div className="relative w-full max-w-xs">
-                <img src={menuImageUrl} alt="Menú" className="rounded-xl border border-slate-800 w-full object-contain max-h-48" />
+            <p className="text-xs font-semibold text-slate-300">Imágenes del menú</p>
+            <p className="text-[11px] text-slate-500">Puedes subir hasta 5 imágenes de tu menú para mostrarlas a los clientes.</p>
+            {menuImageUrls.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {menuImageUrls.map((url, idx) => (
+                  <div key={idx} className="relative group">
+                    <img src={url} alt={`Menú ${idx + 1}`} className="rounded-xl border border-slate-800 w-full object-cover aspect-square" />
+                    <button 
+                      type="button" 
+                      onClick={() => handleMenuImageDelete(url)}
+                      className="absolute top-2 right-2 p-1.5 bg-red-500/80 hover:bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-800 bg-slate-900/40 py-8 gap-2">
                 <ImageIcon className="h-8 w-8 text-slate-600" />
-                <p className="text-xs text-slate-500">Sin imagen de menú</p>
+                <p className="text-xs text-slate-500">Sin imágenes de menú</p>
               </div>
             )}
-            <label className="inline-flex items-center gap-2 text-xs font-medium text-cyan-400 hover:text-cyan-300 cursor-pointer transition-colors">
-              {menuImageUploading ? (
-                <span>Subiendo...</span>
-              ) : (
-                <>
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>{menuImageUrl ? 'Cambiar imagen' : 'Subir imagen del menú'}</span>
-                </>
-              )}
-              <input
-                type="file"
-                className="hidden"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                onChange={handleMenuImageUpload}
-                disabled={menuImageUploading}
-              />
-            </label>
+            
+            {menuImageUrls.length < 5 && (
+              <label className="inline-flex items-center gap-2 text-xs font-medium text-cyan-400 hover:text-cyan-300 cursor-pointer transition-colors mt-2">
+                {menuImageUploading ? (
+                  <span>Subiendo...</span>
+                ) : (
+                  <>
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Subir imágenes</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleMenuImageUpload}
+                  disabled={menuImageUploading}
+                />
+              </label>
+            )}
           </div>
 
           {/* Part 2 — Structured menu */}

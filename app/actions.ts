@@ -949,29 +949,18 @@ export async function disconnectIntegration(integrationId: string) {
 }
 
 /**
- * Uploads a restaurant menu image to Supabase Storage and updates the professional's business_config.
+ * Uploads up to 5 restaurant menu images to Supabase Storage and updates business_config.
  */
-export async function uploadMenuImage(formData: FormData) {
+export async function uploadMenuImages(formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'No autenticado' }
 
-  const file = formData.get('menu_image') as File
-  if (!file || file.size === 0) return { error: 'No se seleccionó ningún archivo' }
+  const files = formData.getAll('menu_images') as File[]
+  if (!files || files.length === 0) return { error: 'No se seleccionaron archivos' }
+  if (files.length > 5) return { error: 'Solo se permiten hasta 5 imágenes' }
 
-  // Validate file type (allowing pdf, jpg, png, webp, gif)
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
-  if (!allowedTypes.includes(file.type)) {
-    return { error: 'Formato no soportado. Usa JPG, PNG, WebP o PDF.' }
-  }
-
-  // Max 5MB
-  if (file.size > 5 * 1024 * 1024) {
-    return { error: 'La imagen del menú no debe pesar más de 5MB.' }
-  }
-
-  const ext = file.name.split('.').pop() || 'jpg'
-  const filePath = `${user.id}/menu.${ext}`
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 
   const { createAdminClient } = await import('@/lib/supabase/admin')
   const adminSupabase = createAdminClient()
@@ -986,24 +975,39 @@ export async function uploadMenuImage(formData: FormData) {
     console.error('Error checking/creating menus bucket:', e)
   }
 
-  // Upload to Supabase Storage (bucket: menus)
-  const { error: uploadError } = await adminSupabase.storage
-    .from('menus')
-    .upload(filePath, file, {
-      upsert: true,
-      contentType: file.type,
-    })
+  const uploadedUrls: string[] = []
 
-  if (uploadError) {
-    return { error: 'Error al subir imagen del menú: ' + uploadError.message }
+  for (const file of files) {
+    if (file.size === 0) continue
+    if (!allowedTypes.includes(file.type)) {
+      return { error: 'Formato no soportado. Usa JPG, PNG, WebP o GIF.' }
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return { error: 'Cada imagen no debe pesar más de 5MB.' }
+    }
+
+    const ext = file.name.split('.').pop() || 'jpg'
+    const uniqueId = Math.random().toString(36).substring(7)
+    const filePath = `${user.id}/menu_${Date.now()}_${uniqueId}.${ext}`
+
+    const { error: uploadError } = await adminSupabase.storage
+      .from('menus')
+      .upload(filePath, file, {
+        upsert: true,
+        contentType: file.type,
+      })
+
+    if (uploadError) {
+      console.error('Upload Error:', uploadError)
+      return { error: 'Error al subir imagen: ' + uploadError.message }
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('menus')
+      .getPublicUrl(filePath)
+
+    uploadedUrls.push(publicUrlData.publicUrl)
   }
-
-  // Get public URL
-  const { data: publicUrlData } = supabase.storage
-    .from('menus')
-    .getPublicUrl(filePath)
-
-  const menu_image_url = publicUrlData.publicUrl
 
   // Fetch existing business_config to merge
   const { data: existing } = await supabase
@@ -1013,7 +1017,14 @@ export async function uploadMenuImage(formData: FormData) {
     .single()
 
   const currentConfig = (existing?.business_config as Record<string, unknown>) ?? {}
-  const newConfig = { ...currentConfig, menu_image_url }
+  const existingUrls = (currentConfig.menu_image_urls as string[]) || []
+  
+  // Combina las URLs viejas con las nuevas, respetando el límite de 5
+  const newUrls = [...existingUrls, ...uploadedUrls].slice(0, 5)
+  const newConfig = { ...currentConfig, menu_image_urls: newUrls }
+  
+  // Limpiamos la vieja variable si existe para evitar basura
+  delete (newConfig as any).menu_image_url
 
   // Update professional record
   const { error: updateError } = await supabase
@@ -1022,10 +1033,57 @@ export async function uploadMenuImage(formData: FormData) {
     .eq('id', user.id)
 
   if (updateError) {
-    return { error: 'Error al guardar URL del menú: ' + updateError.message }
+    return { error: 'Error al guardar URLs del menú: ' + updateError.message }
   }
 
   revalidatePath('/dashboard/settings')
-  return { success: true, menu_image_url }
+  return { success: true, menu_image_urls: newUrls }
+}
+
+/**
+ * Deletes a specific menu image from Supabase Storage and business_config
+ */
+export async function deleteMenuImage(urlToDelete: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  // Extraer el filePath de la URL (ej: https://.../menus/user_id/menu_123.jpg -> user_id/menu_123.jpg)
+  const urlParts = urlToDelete.split('/menus/')
+  if (urlParts.length < 2) return { error: 'URL inválida' }
+  const filePath = urlParts[1]
+
+  const { createAdminClient } = await import('@/lib/supabase/admin')
+  const adminSupabase = createAdminClient()
+
+  // Borrar de storage
+  await adminSupabase.storage.from('menus').remove([filePath])
+
+  // Fetch existing business_config
+  const { data: existing } = await supabase
+    .from('professionals')
+    .select('business_config')
+    .eq('id', user.id)
+    .single()
+
+  const currentConfig = (existing?.business_config as Record<string, unknown>) ?? {}
+  const existingUrls = (currentConfig.menu_image_urls as string[]) || []
+  
+  // Filtrar la URL borrada
+  const newUrls = existingUrls.filter(url => url !== urlToDelete)
+  const newConfig = { ...currentConfig, menu_image_urls: newUrls }
+
+  // Update professional record
+  const { error: updateError } = await supabase
+    .from('professionals')
+    .update({ business_config: newConfig })
+    .eq('id', user.id)
+
+  if (updateError) {
+    return { error: 'Error al actualizar base de datos: ' + updateError.message }
+  }
+
+  revalidatePath('/dashboard/settings')
+  return { success: true, menu_image_urls: newUrls }
 }
 

@@ -98,7 +98,7 @@ export default function PrivacidadPage() {
               Para el ejercicio de cualquiera de los Derechos ARCO, o para revocar el consentimiento previamente otorgado, usted deberá enviar una solicitud formal por escrito al correo electrónico:
             </p>
             <p className="text-cyan-400 font-medium bg-cyan-950/30 p-4 rounded-lg border border-cyan-900/50 mb-4 text-center">
-              contacto@senzio.mx
+              contacto@senz-io.com
             </p>
             <p className="text-slate-400 mb-6">
               Su solicitud deberá incluir: nombre completo, documentos que acrediten su identidad, y una descripción clara de los datos y derechos que desea ejercer. Recibirá una respuesta en los plazos marcados por la LFPDPPP.
