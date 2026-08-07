@@ -384,13 +384,11 @@ export function SettingsClient({ professional, initialBlockedSlots, businessType
     }
   }
 
-  // Google Calendar simulated connection animation
+  // Google Calendar connection
   async function triggerGoogleCalendarSimulation() {
     setModalLoading(true)
     setModalError(null)
-    // Wait 1.5s to simulate OAuth popup redirect and sync
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    await handleConnect('google_calendar')
+    window.location.href = '/api/auth/calendar'
   }
 
   // Handle opening of modals when clicked

@@ -5,39 +5,39 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "node-subworkflow-trigger",
+      "id": "f4ff1ac6-59fe-4105-82fc-e5005e608e7d",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        250,
-        300
+        8944,
+        8432
       ]
     },
     {
       "parameters": {
         "jsCode": "const inputData = $('Execute Workflow Trigger').item.json;\nreturn [{\n  json: {\n    phone: inputData.phone,\n    message: inputData.message,\n    businessPhoneId: inputData.businessPhoneId,\n    displayPhoneNumber: inputData.displayPhoneNumber,\n    messageId: inputData.messageId\n  }\n}];"
       },
-      "id": "node-2",
+      "id": "e61dcbb6-940c-4a14-b04d-483c8c152ecb",
       "name": "Extraer datos del mensaje",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        450,
-        300
+        9136,
+        8432
       ]
     },
     {
       "parameters": {
         "jsCode": "return [{ json: $('Execute Workflow Trigger').item.json.professional }];"
       },
-      "id": "node-3",
+      "id": "7dbb71cf-bb89-4369-9d7f-6486c4191a8b",
       "name": "Buscar profesional",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        650,
-        300
+        9344,
+        8432
       ]
     },
     {
@@ -52,13 +52,13 @@
           ]
         }
       },
-      "id": "node-3b",
+      "id": "732313c2-a69a-4a02-ac42-5d721296b8b3",
       "name": "¿Profesional activo con plan válido?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        850,
-        300
+        9536,
+        8432
       ]
     },
     {
@@ -69,224 +69,267 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Lo sentimos, este servicio no está disponible temporalmente. Por favor contacta directamente al consultorio.\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: 'Lo sentimos, este servicio no está disponible temporalmente. Por favor contacta directamente al consultorio.' } }) }}",
         "options": {}
       },
-      "id": "node-3c",
+      "id": "1d8914d5-3501-4fc9-b2e0-0d974dda820f",
       "name": "Servicio no disponible",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1050,
-        450
+        9648,
+        8736
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
       "parameters": {
-        "operation": "select",
-        "table": "patients",
-        "columns": "*",
+        "operation": "getAll",
+        "tableId": "patients",
+        "limit": 1,
         "filters": {
           "conditions": [
             {
-              "field": "professional_id",
-              "operator": "eq",
-              "value": "={{ $('Buscar profesional').item.json.id }}"
-            },
-            {
-              "field": "phone_whatsapp",
-              "operator": "eq",
-              "value": "={{ $('Execute Workflow Trigger').item.json.phone }}"
+              "keyName": "phone_whatsapp",
+              "condition": "eq",
+              "keyValue": "={{ $('Extraer datos del mensaje').item.json.phone }}"
             }
           ]
-        },
-        "limit": 1
+        }
       },
-      "id": "node-4",
+      "id": "7d7e92ef-9993-43e4-a999-a5ba8bac0480",
       "name": "Buscar paciente",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1050,
-        300
+        9744,
+        8432
       ],
+      "alwaysOutputData": true,
       "credentials": {
-        "supabaseApi": "Supabase account"
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
       }
     },
     {
       "parameters": {
         "conditions": {
-          "number": [
+          "string": [
             {
-              "value1": "={{ $json.length }}",
-              "operation": "larger",
-              "value2": 0
+              "value1": "={{ $json.id }}",
+              "operation": "isNotEmpty"
             }
           ]
         }
       },
-      "id": "node-5",
+      "id": "2a600877-6605-4661-9171-2c4ca1fce853",
       "name": "¿Existe paciente?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        1250,
-        300
+        9936,
+        8432
       ]
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "={{ $('Extraer datos del mensaje').item.json.message }}",
-        "systemPrompt": "Eres un clasificador de intenciones para un consultorio médico. Devuelve SOLO un JSON válido con esta estructura:\n{\n  \"intent\": \"schedule\" | \"cancel\" | \"reschedule\" | \"confirm\" (ejemplos: \"sí\", \"si\", \"confirmo\", \"de acuerdo\", \"va\", \"dale\", \"ok\", \"perfecto\", \"acepto\") | \"question\" | \"other\",\n  \"parameters\": {\n    \"date\": \"YYYY-MM-DD o null\",\n    \"time\": \"HH:MM o null\",\n    \"reason\": \"texto o null\"\n  }\n}"
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $('Extraer datos del mensaje').first().json.message }}"
+            },
+            {
+              "role": "system",
+              "content": "=Eres un clasificador de intenciones para un consultorio médico.\n\nHoy es {{ $now.setLocale('es').toFormat('cccc, yyyy-MM-dd') }} (Formato estricto: AÑO-MES-DÍA) y son las {{ $now.setLocale('es').toFormat('HH:mm') }} horas. Usa SIEMPRE esta fecha para calcular referencias relativas.\n\nCONTEXTO CRÍTICO DEL PACIENTE:\n{{ (() => {\n  const p = $('Buscar paciente').first().json.pending_appointment;\n  if (p && p !== '') return \"EL PACIENTE TIENE UNA PROPUESTA DE CITA PENDIENTE. Si el usuario responde con una afirmación (ej. 'si', 'ok', 'está bien', 'claro', 'confirmo'), DEBES clasificar la intención como 'confirm' obligatoriamente.\";\n  return \"El paciente NO tiene propuestas pendientes.\";\n})() }}\n\nDevuelve SOLO un JSON válido con esta estructura:\n{\n  \"intent\": \"schedule\" | \"cancel\" | \"reschedule\" | \"confirm\" | \"question\" | \"other\",\n  \"parameters\": {\n    \"date\": \"YYYY-MM-DD o null\",\n    \"time\": \"HH:MM o null\",\n    \"reason\": \"texto o null\"\n  }\n}\n\nExamples de intent \"confirm\": \"sí\", \"si\", \"confirmo\", \"de acuerdo\", \"va\", \"dale\", \"ok\", \"perfecto\", \"acepto\", \"bueno\", \"está bien\".\nNo agregues texto fuera del JSON.\n\nREGLA ESPECIAL: Si el paciente dice su nombre (ej: 'soy X', 'me llamo X') sin otra intención clara, clasifica como 'schedule' con date=null y time=null. Esto es porque está respondiendo a la pregunta de su nombre para poder agendar."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          }
+        }
       },
-      "id": "node-6a",
-      "name": "Clasificar intención",
-      "type": "n8n-nodes-base.openAi",
-      "typeVersion": 2,
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
       "position": [
-        1450,
-        200
+        10048,
+        8224
       ],
+      "id": "155802ce-f6c1-4227-aca5-b7c665d87aa8",
+      "name": "Clasificar intencion",
       "credentials": {
-        "openAiApi": "OpenAI"
+        "openAiApi": {
+          "id": "l9gvR2SMM9gkhlsE",
+          "name": "OpenAI account 2"
+        }
       }
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.item.json.choices[0].message.content;\nconst match = raw.match(/\\{[\\s\\S]*\\}/);\nconst parsed = match ? JSON.parse(match[0]) : { intent: \"other\", parameters: {} };\nreturn parsed;"
+        "jsCode": "let raw = \"\";\nif ($input.item.json.output) {\n    raw = $input.item.json.output[0].content[0].text;\n} else if ($input.item.json.message) {\n    raw = $input.item.json.message.content;\n} else if ($input.item.json.text) {\n    raw = $input.item.json.text;\n}\n\nif (typeof raw === 'object' && raw !== null) {\n    return raw;\n}\n\ntry {\n    const match = raw.match(/\\{[\\s\\S]*\\}/);\n    return match ? JSON.parse(match[0]) : { intent: \"other\", parameters: {} };\n} catch (e) {\n    return { intent: \"other\", parameters: {} };\n}"
       },
-      "id": "node-7a",
+      "id": "c612eb57-2311-4ee0-aef7-40c848c7fb93",
       "name": "Parsear JSON de OpenAI",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1650,
-        200
+        10352,
+        8224
       ]
     },
     {
       "parameters": {
-        "dataProperty": "intent",
-        "rules": [
-          {
-            "value": "schedule",
-            "output": 0
-          },
-          {
-            "value": "reschedule",
-            "output": 0
-          },
-          {
-            "value": "cancel",
-            "output": 1
-          },
-          {
-            "value": "confirm",
-            "output": 2
-          },
-          {
-            "value": "question",
-            "output": 3
-          },
-          {
-            "value": "other",
-            "output": 3
-          }
-        ]
+        "dataType": "string",
+        "value1": "={{ $json.intent }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "schedule"
+            },
+            {
+              "value2": "reschedule"
+            },
+            {
+              "value2": "cancel"
+            },
+            {
+              "value2": "confirm",
+              "output": 2
+            },
+            {
+              "value2": "question",
+              "output": 3
+            },
+            {
+              "value2": "other",
+              "output": 3
+            }
+          ]
+        }
       },
-      "id": "node-8a",
+      "id": "e0da08c5-b201-41b7-b918-8d28b02789ea",
       "name": "Enrutar por intención",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 1,
       "position": [
-        1850,
-        200
+        10560,
+        8192
       ]
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "={{ $('Extraer datos del mensaje').item.json.message }}",
-        "systemPrompt": "Eres el asistente virtual del Dr. {{ $('Buscar profesional').item.json.full_name }} ({{ $('Buscar profesional').item.json.specialty }}). Responde la pregunta del paciente de manera amable y profesional."
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $('Extraer datos del mensaje').first().json.message }}"
+            },
+            {
+              "role": "system",
+              "content": "==Eres el asistente virtual del {{ $('Buscar profesional').first().json.full_name }} ({{ $('Buscar profesional').first().json.specialty }}) del consultorio {{ $('Buscar profesional').first().json.clinic_name }}.\n\nHoy es {{ $now.setLocale('es').toFormat('cccc, yyyy-MM-dd') }} y son las {{ $now.setLocale('es').toFormat('HH:mm') }} horas.\n\nEl nombre del paciente en la base de datos es: \"{{ $('Buscar paciente').first().json.full_name }}\".\n\nHORARIOS DE ATENCIÓN:\n{{ JSON.stringify($('Buscar profesional').first().json.business_config?.working_hours || $('Buscar profesional').first().json.working_hours) }}\n\nREGLAS ESTRICTAS:\n1. Si el nombre es 'Desconocido' o vacío, el paciente es NUEVO para ti. Salúdalo de forma cálida respondiendo a su saludo (buenos días/tardes/noches), preséntate con el nombre del consultorio y pídele su nombre y en qué puedes ayudarle. NO menciones horarios ni servicios.\n2. Si el nombre es conocido, NO te presentes de nuevo. Responde directo a lo que pregunta.\n3. Si el paciente pregunta por horarios disponibles, respóndele con los días y horas de atención.\n4. Si el paciente quiere agendar, pídele la fecha y hora específica.\n5. NUNCA preguntes el nombre (eso lo maneja el sistema automáticamente).\n6. Sé conciso: máximo 2-3 oraciones."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
       },
-      "id": "node-9a",
-      "name": "Responder pregunta",
-      "type": "n8n-nodes-base.openAi",
-      "typeVersion": 2,
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
       "position": [
-        2050,
-        400
+        10720,
+        8400
       ],
+      "id": "8f978d77-be7d-4929-826f-e60c01f6e5da",
+      "name": "Responder Pregunta",
       "credentials": {
-        "openAiApi": "OpenAI"
+        "openAiApi": {
+          "id": "l9gvR2SMM9gkhlsE",
+          "name": "OpenAI account 2"
+        }
       }
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').first().json.businessPhoneId + '/messages' }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.choices[0].message.content }}\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').first().json.phone, type: 'text', text: { body: $input.item.json.output?.[0]?.content?.[0]?.text || $input.item.json.message?.content || $input.item.json.text || 'Un momento por favor...' } }) }}",
         "options": {}
       },
-      "id": "node-10a",
+      "id": "204f1c15-d17b-4e68-ab87-b640fddd8697",
       "name": "Enviar respuesta",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2250,
-        400
+        10944,
+        8528
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
       "parameters": {
-        "operation": "select",
-        "table": "appointments",
-        "columns": "*",
+        "operation": "getAll",
+        "tableId": "appointments",
+        "limit": 1,
         "filters": {
           "conditions": [
             {
-              "field": "patient_id",
-              "operator": "eq",
-              "value": "={{ $('Buscar paciente').item.json.id }}"
+              "keyName": "patient_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar paciente').item.json.id }}"
             },
             {
-              "field": "status",
-              "operator": "in",
-              "value": [
-                "scheduled",
-                "confirmed"
-              ]
+              "keyName": "status",
+              "condition": "in",
+              "keyValue": "scheduled,confirmed"
             }
           ]
-        },
-        "order": {
-          "field": "starts_at",
-          "direction": "asc"
-        },
-        "limit": 1
+        }
       },
-      "id": "node-9b",
+      "id": "5eee0a74-4c75-4e40-93a1-aaf2287f4fcf",
       "name": "Buscar cita activa (confirm)",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        2050,
-        550
+        10736,
+        8688
       ],
+      "alwaysOutputData": true,
       "credentials": {
-        "supabaseApi": "Supabase account"
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
       }
     },
     {
@@ -297,25 +340,30 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{( $json.length > 0 ) ? `Tiene una cita programada para el ${$json.starts_at}. ¿Confirma su asistencia? (sí/no)` : 'No tiene citas activas.'}}\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: ($json.length > 0) ? `Tiene una cita programada para el ${$json.starts_at}. ¿Confirma su asistencia? (sí/no)` : 'No tiene citas activas.' } }) }}",
         "options": {}
       },
-      "id": "node-10b",
+      "id": "833bedfc-b9af-4846-91d2-de4d21d80955",
       "name": "Confirmar asistencia",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2250,
-        550
+        10944,
+        8688
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
       "parameters": {
         "method": "PATCH",
         "url": "https://www.senz-io.com/api/n8n/appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -326,53 +374,23 @@
           ]
         },
         "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "appointment_id",
-              "value": "={{ $('Buscar cita activa (confirm)').item.json.id }}"
-            },
-            {
-              "name": "professional_id",
-              "value": "={{ $('Buscar profesional').item.json.id }}"
-            },
-            {
-              "name": "action",
-              "value": "confirm"
-            }
-          ]
-        },
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"appointment_id\": \"{{ $('Buscar cita activa (confirm)').item.json.id }}\",\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"action\": \"confirm\"\n}",
+        "options": {}
       },
-      "id": "node-10c",
+      "id": "73339821-8b56-4fed-9aa4-de56509ac7f2",
       "name": "Confirmar cita vía API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2450,
-        550
+        11184,
+        8688
       ],
       "credentials": {
-        "httpHeaderAuth": "N8N Webhook Secret"
-      }
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "={{ $('Extraer datos del mensaje').item.json.message }}",
-        "systemPrompt": "Eres el asistente virtual del Dr. {{ $('Buscar profesional').item.json.full_name }} ({{ $('Buscar profesional').item.json.specialty }}) del consultorio {{ $('Buscar profesional').item.json.clinic_name }}. El paciente es nuevo. Dale la bienvenida, preséntale los servicios y pregúntale si desea agendar una cita."
-      },
-      "id": "node-6b",
-      "name": "Presentación del consultorio",
-      "type": "n8n-nodes-base.openAi",
-      "typeVersion": 2,
-      "position": [
-        1450,
-        650
-      ],
-      "credentials": {
-        "openAiApi": "OpenAI"
+        "httpHeaderAuth": {
+          "id": "bVOKxeUsYGE0fGVf",
+          "name": "Header Auth account"
+        }
       }
     },
     {
@@ -383,32 +401,98 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.choices[0].message.content }}\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: '¡Tu cita ha sido confirmada! Te esperamos.' } }) }}",
         "options": {}
       },
-      "id": "node-7b",
+      "id": "b1bfe3db-894f-473a-af88-17f335748771",
+      "name": "Respuesta confirmación cita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        11408,
+        8688
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "={{ $('Extraer datos del mensaje').item.json.message }}"
+            },
+            {
+              "role": "system",
+              "content": "=Eres el asistente virtual del Dr. {{ $('Buscar profesional').item.json.full_name }} ({{ $('Buscar profesional').item.json.specialty }}) del consultorio {{ $('Buscar profesional').item.json.clinic_name }}.\n\nHoy es {{ $now.setLocale('es').toFormat('cccc, yyyy-MM-dd') }} y son las {{ $now.setLocale('es').toFormat('HH:mm') }} horas.\n\nEl paciente acaba de escribirnos por PRIMERA VEZ. Su mensaje fue: \"{{ $('Extraer datos del mensaje').item.json.message }}\".\n\nINSTRUCCIONES:\n1. Responde al saludo del paciente (buenos días/tardes/noches según corresponda).\n2. Preséntate con el nombre del consultorio y la especialidad del doctor.\n3. Pregunta el nombre del paciente y en qué le puedes ayudar.\n\nNO menciones horarios ni servicios todavía. Sé breve: máximo 3 oraciones."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        10048,
+        8624
+      ],
+      "id": "92e62d80-dd88-486f-9d2c-5a91adacd24b",
+      "name": "Presentación del consultorio",
+      "credentials": {
+        "openAiApi": {
+          "id": "l9gvR2SMM9gkhlsE",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: $input.item.json.output?.[0]?.content?.[0]?.text || $input.item.json.message?.content || $input.item.json.text || 'Bienvenido, ¿en qué le puedo ayudar?' } }) }}",
+        "options": {}
+      },
+      "id": "3f354b15-3a63-41a7-868a-1cbbe2009c8a",
       "name": "Enviar respuesta (nuevo)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        1650,
-        650
+        10352,
+        8624
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
       "parameters": {
-        "jsCode": "const params = $input.item.json.parameters;\nif (!params.date || !params.time) {\n  return { needMoreInfo: true, message: \"¿Qué fecha y hora prefiere? (ejemplo: 15 de junio a las 10 am)\" };\n} else {\n  return { needMoreInfo: false, date: params.date, time: params.time, reason: params.reason };\n}"
+        "jsCode": "const params = $input.item.json.parameters;\nconst mensaje = $('Extraer datos del mensaje').first().json.message || '';\n\n// Get the stored name - check both Supabase cache AND what was just saved\nconst nombreEnDB = $('Buscar paciente').first().json.full_name || 'Desconocido';\n\n// Try to extract name from this message (or detect if it was given before)\nlet nombreDelMensaje = null;\nconst matchExplicit = mensaje.match(\n  /(?:soy|me llamo|mi nombre es)\\s+([A-Za-záéíóúÁÉÍÓÚñÑüÜ][A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]{1,40}?)(?:\\s*[,.]|\\s+quiero|\\s+quisiera|\\s+deseo|\\s+y\\s|$)/i\n);\nif (matchExplicit) {\n  nombreDelMensaje = matchExplicit[1].trim();\n}\n\n// Determine effective name: prefer extracted from message, then from DB\nconst nombreEfectivo = nombreDelMensaje || (nombreEnDB !== 'Desconocido' ? nombreEnDB : null);\nconst esDesconocido = !nombreEfectivo;\n\n// If still unknown (no name anywhere), ask for name\nif (esDesconocido) {\n  return [{ json: { \n    needMoreInfo: true, \n    message: '¡Con gusto! ¿Me podrías decir tu nombre para poder atenderte mejor? 😊'\n  }}];\n}\n\n// Has name - check if date/time provided\nif (!params.date || !params.time) {\n  return [{ json: { \n    needMoreInfo: true, \n    message: `¡Con gusto ${nombreEfectivo}! ¿Para qué fecha y hora prefieres tu cita? (ej: mañana a las 10 am)` \n  }}];\n} else {\n  return [{ json: { \n    needMoreInfo: false, \n    date: params.date, \n    time: params.time, \n    reason: params.reason \n  }}];\n}"
       },
-      "id": "node-s1",
+      "id": "ed5b2139-72f3-4d0c-81d4-4cb566b337ae",
       "name": "Validar fecha/hora en parámetros",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2050,
-        100
+        10752,
+        8176
       ]
     },
     {
@@ -419,32 +503,35 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.message }}\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: $json.message } }) }}",
         "options": {}
       },
-      "id": "node-s2",
+      "id": "9f481fa8-e3fa-4260-9edb-8eb2b799b3fa",
       "name": "Pedir fecha/hora",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2450,
-        50
+        11152,
+        8048
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
       "parameters": {
-        "jsCode": "const workingHours = $('Buscar profesional').item.json.business_config?.working_hours;\nconst date = new Date($input.item.json.date + 'T' + $input.item.json.time);\nconst day = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();\nconst dayConfig = workingHours[day];\nif (!dayConfig || !dayConfig.enabled) {\n  return { valid: false, message: \"Ese día no atendemos.\" };\n}\nconst time = $input.item.json.time;\nif (time < dayConfig.start || time > dayConfig.end) {\n  return { valid: false, message: `El horario es de ${dayConfig.start} a ${dayConfig.end}.` };\n}\nreturn { valid: true, date: $input.item.json.date, time: $input.item.json.time, reason: $input.item.json.reason };"
+        "jsCode": "const professional = $('Buscar profesional').item.json;\n// Priorizar business_config.working_hours sobre working_hours raíz\nconst workingHours = professional.business_config?.working_hours || professional.working_hours;\n\nconst date = new Date($input.item.json.date + 'T' + $input.item.json.time);\nconst day = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();\nconst dayConfig = workingHours?.[day];\n\nif (!dayConfig || !dayConfig.enabled) {\n  // Construir lista de días disponibles para dar info útil\n  const diasDisponibles = Object.entries(workingHours || {})\n    .filter(([_, h]) => h.enabled)\n    .map(([dia, h]) => `${dia}: ${h.start} - ${h.end}`)\n    .join(', ');\n  return [{ json: { \n    valid: false, \n    message: `Ese día no atendemos. Nuestros horarios disponibles son: ${diasDisponibles}.` \n  }}];\n}\n\n\nconst traducirDia = {\n  monday: 'lunes', tuesday: 'martes', wednesday: 'miércoles',\n  thursday: 'jueves', friday: 'viernes', saturday: 'sábado', sunday: 'domingo'\n};\nconst diaEspanol = traducirDia[day] || day;\n\nconst time = $input.item.json.time;\nif (time < dayConfig.start || time > dayConfig.end) {\n  // En el mensaje:\nreturn [{ json: { \n  valid: false, \n  message: `Ese horario no está disponible. Los horarios del ${diaEspanol} son de ${dayConfig.start} a ${dayConfig.end}.`\n}}];\n}\nreturn [{ json: { valid: true, date: $input.item.json.date, time: $input.item.json.time, reason: $input.item.json.reason }}];"
       },
-      "id": "node-s3",
+      "id": "6beedae1-1c4a-4276-a9e6-7f35766b461d",
       "name": "Validar working_hours",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2450,
-        150
+        11152,
+        8192
       ]
     },
     {
@@ -455,57 +542,22 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"{{ $json.message }}\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: $json.message } }) }}",
         "options": {}
       },
-      "id": "node-s4",
+      "id": "8eb32a37-bfc4-4706-9fc1-1792aed8c62c",
       "name": "Horario no válido",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2450,
-        150
+        11392,
+        8192
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
-      }
-    },
-    {
-      "parameters": {
-        "operation": "select",
-        "table": "blocked_slots",
-        "columns": "*",
-        "filters": {
-          "conditions": [
-            {
-              "field": "professional_id",
-              "operator": "eq",
-              "value": "={{ $('Buscar profesional').item.json.id }}"
-            },
-            {
-              "field": "starts_at",
-              "operator": "lte",
-              "value": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}"
-            },
-            {
-              "field": "ends_at",
-              "operator": "gte",
-              "value": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}"
-            }
-          ]
-        },
-        "limit": 1
-      },
-      "id": "node-s5",
-      "name": "Verificar blocked_slots",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        2450,
-        200
-      ],
-      "credentials": {
-        "supabaseApi": "Supabase account"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
@@ -514,65 +566,18 @@
           "number": [
             {
               "value1": "={{ $json.length }}",
-              "operation": "larger",
-              "value2": 0
+              "operation": "larger"
             }
           ]
         }
       },
-      "id": "node-s6",
+      "id": "063fa086-4db0-476e-a94d-951a26e585c6",
       "name": "¿Hay bloqueo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        2650,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "resource": "event",
-        "operation": "list",
-        "calendarId": {
-          "__rl": true,
-          "value": "primary",
-          "mode": "id"
-        },
-        "timeMin": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}",
-        "timeMax": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':30' }}",
-        "maxResults": 1
-      },
-      "id": "node-s7",
-      "name": "Ver disponibilidad GC",
-      "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1,
-      "position": [
-        2850,
-        200
-      ],
-      "credentials": {
-        "googleCalendarOAuth2Api": "Google Calendar account"
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "number": [
-            {
-              "value1": "={{ $json.length }}",
-              "operation": "larger",
-              "value2": 0
-            }
-          ]
-        }
-      },
-      "id": "node-s8",
-      "name": "¿Hay evento?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        3050,
-        200
+        11584,
+        8432
       ]
     },
     {
@@ -583,50 +588,60 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Hay disponibilidad para el {{ $input.item.json.date }} a las {{ $input.item.json.time }}. ¿Confirma la cita? (sí/no)\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: `Hay disponibilidad para el ${$('Validar working_hours').item.json.date} a las ${$('Validar working_hours').item.json.time}. ¿Confirma la cita? (sí/no)` } }) }}",
         "options": {}
       },
-      "id": "node-s9",
+      "id": "9080dec1-4bf6-4c13-9a1a-df3eb7453dfb",
       "name": "Pedir confirmación",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        3250,
-        200
+        12352,
+        8464
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
       "parameters": {
-        "resource": "event",
-        "operation": "create",
-        "calendarId": {
+        "calendar": {
           "__rl": true,
-          "value": "primary",
-          "mode": "id"
+          "mode": "id",
+          "value": "crow9427@gmail.com",
+          "cachedResultName": "crow9427@gmail.com"
         },
-        "start": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}",
-        "end": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':30' }}",
-        "summary": "Cita {{ $('Buscar paciente').item.json.full_name }} - {{ $input.item.json.reason }}"
+        "start": "={{ (() => { const d = $input.item.json.date; const t = $input.item.json.time; return d + 'T' + t + ':00-06:00'; })() }}",
+        "end": "={{ (() => { const d = $input.item.json.date; const [h, m] = $input.item.json.time.split(':').map(Number); const endMin = m + 30; const endH = endMin >= 60 ? h + 1 : h; const endM = endMin >= 60 ? endMin - 60 : endMin; return d + 'T' + String(endH).padStart(2,'0') + ':' + String(endM).padStart(2,'0') + ':00-06:00'; })() }}",
+        "additionalFields": {
+          "summary": "=Cita médica - {{ $('Buscar paciente').first().json.full_name }}",
+          "description": "=Motivo: {{ $input.item.json.reason || 'Consulta médica' }}\nPaciente: {{ $('Buscar paciente').first().json.full_name }}\nTeléfono: {{ $('Execute Workflow Trigger').first().json.phone }}"
+        }
       },
-      "id": "node-s11",
+      "id": "1109093a-41ea-42be-9f17-58efb5da4f61",
       "name": "Crear evento GC",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1,
       "position": [
-        3450,
-        200
+        11616,
+        8256
       ],
       "credentials": {
-        "googleCalendarOAuth2Api": "Google Calendar account"
+        "googleCalendarOAuth2Api": {
+          "id": "WCLd6u8nUUgcmILR",
+          "name": "Google Calendar account"
+        }
       }
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://www.senz-io.com/api/n8n/appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -639,20 +654,24 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ $('Validar working_hours').item.json.date }}\",\n  \"time\": \"{{ $('Validar working_hours').item.json.time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ $('Validar working_hours').item.json.reason }}\",\n  \"channel\": \"whatsapp\"\n}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "options": {}
       },
-      "id": "node-s12",
+      "id": "898efde1-bb53-4cbe-9c20-dfd6f75022a6",
       "name": "Agendar cita vía API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        3650,
-        200
+        11840,
+        8240
       ],
       "credentials": {
-        "httpHeaderAuth": "N8N Webhook Secret"
-      }
+        "httpHeaderAuth": {
+          "id": "bVOKxeUsYGE0fGVf",
+          "name": "Header Auth account"
+        }
+      },
+      "settings": {},
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -662,25 +681,30 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Su cita ha sido agendada para el {{ $('Validar working_hours').item.json.date }} a las {{ $('Validar working_hours').item.json.time }}. ¡Te esperamos!\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: `Su cita ha sido agendada para el ${$('Validar working_hours').item.json.date} a las ${$('Validar working_hours').item.json.time}. ¡Te esperamos!\\n\\n✅ Tu cita está confirmada con el ${$('Buscar profesional').item.json.full_name}.\\n📍 Te esperamos en: ${$('Buscar profesional').item.json.business_config?.clinic_address}\\n🗺️ Ver en mapa: https://maps.google.com/?q=${encodeURIComponent($('Buscar profesional').item.json.business_config?.clinic_address)}\\n📅 Haz clic aquí para agregarlo a tu calendario: \\nhttps://calendar.google.com/calendar/render?action=TEMPLATE&text=Cita+Médica&dates=${(() => { let [h, m] = $('Validar working_hours').item.json.time.split(':').map(Number); let start = h.toString().padStart(2,'0') + m.toString().padStart(2,'0') + '00'; let m2 = m + 30; let h2 = h; if(m2 >= 60){ h2 += 1; m2 -= 60; } let end = h2.toString().padStart(2,'0') + m2.toString().padStart(2,'0') + '00'; let d = $('Validar working_hours').item.json.date.replace(/-/g, ''); return d + 'T' + start + '/' + d + 'T' + end; })()}&location=${encodeURIComponent($('Buscar profesional').item.json.business_config?.clinic_address)}` } }) }}",
         "options": {}
       },
-      "id": "node-s13",
+      "id": "617be2b2-acb1-455b-a26a-03d9912b56f9",
       "name": "Confirmación al paciente",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        3850,
-        200
+        12096,
+        8240
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://www.senz-io.com/api/notifications/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -693,59 +717,57 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"title\": \"Nueva cita agendada\",\n  \"message\": \"{{ $('Validar working_hours').item.json.date }} a las {{ $('Validar working_hours').item.json.time }} con {{ $('Buscar paciente').item.json.full_name }}\",\n  \"url\": \"/dashboard/appointments\"\n}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "options": {}
       },
-      "id": "node-s14",
+      "id": "064b0e96-2116-463f-b30c-b0cdcea37d24",
       "name": "Notificación push al médico",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        4050,
-        200
+        12336,
+        8240
       ],
       "credentials": {
-        "httpHeaderAuth": "N8N Webhook Secret"
+        "httpHeaderAuth": {
+          "id": "bVOKxeUsYGE0fGVf",
+          "name": "Header Auth account"
+        }
       }
     },
     {
       "parameters": {
-        "operation": "select",
-        "table": "appointments",
-        "columns": "*",
+        "operation": "getAll",
+        "tableId": "appointments",
+        "limit": 1,
         "filters": {
           "conditions": [
             {
-              "field": "patient_id",
-              "operator": "eq",
-              "value": "={{ $('Buscar paciente').item.json.id }}"
+              "keyName": "patient_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar paciente').item.json.id }}"
             },
             {
-              "field": "status",
-              "operator": "in",
-              "value": [
-                "scheduled",
-                "confirmed"
-              ]
+              "keyName": "status",
+              "condition": "in",
+              "keyValue": "scheduled,confirmed"
             }
           ]
-        },
-        "order": {
-          "field": "starts_at",
-          "direction": "asc"
-        },
-        "limit": 1
+        }
       },
-      "id": "node-c1",
+      "id": "2c7faf3a-fa58-4408-bdfe-dba8d5a94b7c",
       "name": "Buscar cita activa (cancelar)",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        2050,
-        750
+        10736,
+        9104
       ],
+      "alwaysOutputData": true,
       "credentials": {
-        "supabaseApi": "Supabase account"
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
       }
     },
     {
@@ -754,19 +776,18 @@
           "number": [
             {
               "value1": "={{ $json.length }}",
-              "operation": "larger",
-              "value2": 0
+              "operation": "larger"
             }
           ]
         }
       },
-      "id": "node-c2",
+      "id": "0e531fac-9ce2-41f5-a136-8f350b84b308",
       "name": "¿Tiene cita activa?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        2250,
-        750
+        10976,
+        9104
       ]
     },
     {
@@ -777,25 +798,30 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Tiene una cita el {{ $json.starts_at }}. ¿Desea cancelarla? (sí/no)\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: `Tiene una cita el ${$json.starts_at}. ¿Desea cancelarla? (sí/no)` } }) }}",
         "options": {}
       },
-      "id": "node-c3",
+      "id": "9ec3e1a1-0c07-48e9-ab45-b801447ce565",
       "name": "Mostrar cita y pedir confirmación",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2450,
-        750
+        11184,
+        9088
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
       "parameters": {
         "method": "PATCH",
         "url": "https://www.senz-io.com/api/n8n/appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -808,42 +834,48 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"appointment_id\": \"{{ $('Buscar cita activa (cancelar)').item.json.id }}\",\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"action\": \"cancel\"\n}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "options": {}
       },
-      "id": "node-c5",
+      "id": "a0df1dd8-d3aa-4659-8a31-302eb65f0ec2",
       "name": "Cancelar cita vía API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2650,
-        750
+        11392,
+        9088
       ],
       "credentials": {
-        "httpHeaderAuth": "N8N Webhook Secret"
+        "httpHeaderAuth": {
+          "id": "bVOKxeUsYGE0fGVf",
+          "name": "Header Auth account"
+        }
       }
     },
     {
       "parameters": {
-        "resource": "event",
         "operation": "delete",
-        "calendarId": {
+        "calendar": {
           "__rl": true,
-          "value": "primary",
-          "mode": "id"
+          "value": "safelunch772@gmail.com",
+          "mode": "list",
+          "cachedResultName": "safelunch772@gmail.com"
         },
-        "eventId": "={{ $('Buscar cita activa (cancelar)').item.json.google_calendar_event_id }}"
+        "eventId": "={{ $('Buscar cita activa (cancelar)').item.json.google_calendar_event_id }}",
+        "options": {}
       },
-      "id": "node-c6",
+      "id": "279af130-95bd-4c0e-a629-148987cd6cd6",
       "name": "Eliminar evento GC",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1,
       "position": [
-        2850,
-        750
+        11616,
+        9104
       ],
       "credentials": {
-        "googleCalendarOAuth2Api": "Google Calendar account"
+        "googleCalendarOAuth2Api": {
+          "id": "WCLd6u8nUUgcmILR",
+          "name": "Google Calendar account"
+        }
       }
     },
     {
@@ -854,19 +886,22 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"¿Desea reagendar su cita para otra fecha? (sí/no)\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: '¿Desea reagendar su cita para otra fecha? (sí/no)' } }) }}",
         "options": {}
       },
-      "id": "node-c7",
+      "id": "79a8cb31-96d2-414c-a7c4-3f1c8953db07",
       "name": "Preguntar si desea reagendar",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        3050,
-        750
+        11872,
+        9104
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
@@ -877,19 +912,22 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Para mejorar nuestro servicio, ¿podría indicarnos el motivo de la cancelación? (Enfermedad, Cambio de planes, Otro)\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: 'Para mejorar nuestro servicio, ¿podría indicarnos el motivo de la cancelación? (Enfermedad, Cambio de planes, Otro)' } }) }}",
         "options": {}
       },
-      "id": "node-c9",
+      "id": "2a34bfbc-60ac-4f74-afa8-d7de2a93a136",
       "name": "Encuesta de cancelación",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        3250,
-        750
+        12064,
+        9104
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
@@ -900,38 +938,41 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"En una escala del 1 al 5, ¿qué tan satisfecho está con nuestro servicio?\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: 'En una escala del 1 al 5, ¿qué tan satisfecho está con nuestro servicio?' } }) }}",
         "options": {}
       },
-      "id": "node-c10",
+      "id": "b484edac-e7ba-46d2-af75-5cbf3e7076db",
       "name": "Encuesta de satisfacción",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        3450,
-        750
+        12272,
+        9104
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
       "parameters": {
-        "operation": "insert",
-        "table": "surveys",
-        "columns": "professional_id, patient_id, appointment_id, reason, satisfaction",
-        "values": "={{ $('Buscar profesional').item.json.id }}, {{ $('Buscar paciente').item.json.id }}, {{ $('Buscar cita activa (cancelar)').item.json.id }}, {{ $json.reason }}, {{ $json.satisfaction }}"
+        "operation": "insert"
       },
-      "id": "node-c11",
+      "id": "9f3b2d7d-9c4d-41bc-90c3-228652725709",
       "name": "Guardar encuesta",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        3650,
-        750
+        12464,
+        9104
       ],
       "credentials": {
-        "supabaseApi": "Supabase account"
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
       }
     },
     {
@@ -945,84 +986,108 @@
           ]
         }
       },
-      "id": "node-if-need-more-info",
+      "id": "50299223-aa76-4bf2-9d9b-d2ffdfa1498c",
       "name": "¿Necesita más información?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        2250,
-        100
+        10928,
+        8176
       ]
     },
     {
       "parameters": {
-        "resource": "row",
         "operation": "update",
         "tableId": "patients",
-        "rowId": "={{ $('Buscar paciente').item.json.id }}",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "pending_appointment": "={{ JSON.stringify({ date: $('Validar working_hours').item.json.date, time: $('Validar working_hours').item.json.time, reason: $('Validar working_hours').item.json.reason }) }}"
-          }
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar paciente').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "pending_appointment",
+              "fieldValue": "={{ JSON.stringify({ date: $('Validar working_hours').item.json.date, time: $('Validar working_hours').item.json.time, reason: $('Validar working_hours').item.json.reason }) }}"
+            }
+          ]
         }
       },
-      "id": "node-save-pending",
+      "id": "46568bca-8d0c-4079-aa9f-86d8ca7a7a2c",
       "name": "Guardar propuesta de cita",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        3150,
-        300
+        12176,
+        8464
       ],
       "credentials": {
-        "supabaseApi": "Supabase account"
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
       }
     },
     {
       "parameters": {
         "conditions": {
-          "string": [
+          "boolean": [
             {
-              "value1": "={{ $('Buscar paciente').item.json.pending_appointment }}",
-              "operation": "isNotEmpty"
+              "value1": "={{ (() => { const p = $('Buscar paciente').first().json.pending_appointment; return !!p && p !== ''; })() }}",
+              "value2": true
             }
           ]
         }
       },
-      "id": "node-if-pending-appointment",
+      "id": "bba37ee3-3127-4472-83ad-eca4ec998e33",
       "name": "¿Tiene propuesta pendiente?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        2050,
-        550
+        10736,
+        8896
       ]
     },
     {
       "parameters": {
-        "calendar": "primary",
-        "start": "={{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date + 'T' + JSON.parse($('Buscar paciente').item.json.pending_appointment).time + ':00' }}",
-        "end": "={{ new Date(new Date(JSON.parse($('Buscar paciente').item.json.pending_appointment).date + 'T' + JSON.parse($('Buscar paciente').item.json.pending_appointment).time + ':00').getTime() + 30 * 60 * 1000).toISOString() }}",
-        "summary": "Cita {{ $('Buscar paciente').item.json.full_name }} - {{ JSON.parse($('Buscar paciente').item.json.pending_appointment).reason }}",
-        "description": "Cita médica confirmada por WhatsApp"
+        "calendar": {
+          "__rl": true,
+          "value": "safelunch772@gmail.com",
+          "mode": "list",
+          "cachedResultName": "safelunch772@gmail.com"
+        },
+        "start": "={{ (() => { const p = $('Buscar paciente').first().json.pending_appointment; const pa = typeof p === 'string' ? JSON.parse(p) : p; return pa.date + 'T' + pa.time + ':00-06:00'; })() }}",
+        "end": "={{ (() => { const p = $('Buscar paciente').first().json.pending_appointment; const pa = typeof p === 'string' ? JSON.parse(p) : p; const [h, m] = pa.time.split(':').map(Number); const endMin = m + 30; const endH = endMin >= 60 ? h + 1 : h; const endM = endMin >= 60 ? endMin - 60 : endMin; return pa.date + 'T' + String(endH).padStart(2,'0') + ':' + String(endM).padStart(2,'0') + ':00-06:00'; })() }}",
+        "additionalFields": {
+          "summary": "=Cita médica - {{ $('Buscar paciente').first().json.full_name }}",
+          "description": "={{ (() => { const p = $('Buscar paciente').first().json.pending_appointment; const pa = typeof p === 'string' ? JSON.parse(p) : p; return `Motivo: ${pa.reason || 'Consulta médica'}\\nPaciente: ${$('Buscar paciente').first().json.full_name}\\nTeléfono: ${$('Execute Workflow Trigger').first().json.phone}`; })() }}"
+        }
       },
-      "id": "node-create-event-confirm",
+      "id": "656ee8ac-a90c-4ebc-93a0-8d1c8e27c230",
       "name": "Crear evento GC (Confirmado)",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1,
       "position": [
-        2250,
-        500
+        10944,
+        8880
       ],
       "credentials": {
-        "googleCalendarOAuth2Api": "Google Calendar account"
+        "googleCalendarOAuth2Api": {
+          "id": "WCLd6u8nUUgcmILR",
+          "name": "Google Calendar account"
+        }
       }
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://www.senz-io.com/api/n8n/appointments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1034,45 +1099,60 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"patient_phone\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"patient_name\": \"{{ $('Buscar paciente').item.json.full_name }}\",\n  \"date\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }}\",\n  \"time\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }}\",\n  \"duration_minutes\": 30,\n  \"reason\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).reason }}\",\n  \"channel\": \"whatsapp\"\n}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "jsonBody": "={{ (() => { const p = $('Buscar paciente').first().json.pending_appointment; const pa = typeof p === 'string' ? JSON.parse(p) : p; return JSON.stringify({ professional_id: $('Buscar profesional').first().json.id, patient_phone: $('Execute Workflow Trigger').first().json.phone, patient_name: $('Buscar paciente').first().json.full_name, date: pa.date, time: pa.time, duration_minutes: 30, reason: pa.reason || 'Consulta médica', channel: 'whatsapp' }); })() }}",
+        "options": {}
       },
-      "id": "node-book-appt-confirm",
+      "id": "17db8f9d-f278-4b67-8e6f-16bcc25ece16",
       "name": "Agendar cita vía API (Confirmado)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2450,
-        500
+        11120,
+        8880
       ],
       "credentials": {
-        "httpHeaderAuth": "N8N Webhook Secret"
-      }
+        "httpHeaderAuth": {
+          "id": "bVOKxeUsYGE0fGVf",
+          "name": "Header Auth account"
+        }
+      },
+      "settings": {},
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "resource": "row",
         "operation": "update",
         "tableId": "patients",
-        "rowId": "={{ $('Buscar paciente').item.json.id }}",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "pending_appointment": null
-          }
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar paciente').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "pending_appointment"
+            }
+          ]
         }
       },
-      "id": "node-clear-pending-confirm",
+      "id": "86999173-002d-4947-be15-107ecce132db",
       "name": "Limpiar propuesta de cita",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        2650,
-        500
+        11328,
+        8880
       ],
       "credentials": {
-        "supabaseApi": "Supabase account"
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
       }
     },
     {
@@ -1083,25 +1163,30 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Execute Workflow Trigger').item.json.phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Su cita ha sido agendada para el {{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }} a las {{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }}. ¡Te esperamos!\"\n  }\n}",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').first().json.phone, type: 'text', text: { body: (() => { const p = $('Buscar paciente').first().json.pending_appointment; const pa = typeof p === 'string' ? JSON.parse(p) : p; let [h, m] = pa.time.split(':').map(Number); let start = h.toString().padStart(2,'0') + m.toString().padStart(2,'0') + '00'; let m2 = m + 30; let h2 = h; if(m2 >= 60){ h2 += 1; m2 -= 60; } let end = h2.toString().padStart(2,'0') + m2.toString().padStart(2,'0') + '00'; let d = pa.date.replace(/-/g, ''); const dates = d + 'T' + start + '/' + d + 'T' + end; const prof = $('Buscar profesional').first().json; const btConfig = typeof prof.business_types === 'string' ? JSON.parse(prof.business_types).config : (prof.business_types?.config || {}); const address = btConfig.clinic_address || prof.business_config?.clinic_address || 'nuestro consultorio'; const profName = $('Buscar profesional').first().json.full_name; const mapUrl = 'https://maps.google.com/?q=' + encodeURIComponent(address); const calUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=Cita+Médica&dates=' + dates + '&location=' + encodeURIComponent(address); return `Su cita ha sido agendada para el ${pa.date} a las ${pa.time}. ¡Te esperamos!\\n\\n✅ Tu cita está confirmada con el ${profName}.\\n📍 Te esperamos en: ${address}\\n🗺️ Ver en mapa: ${mapUrl}\\n📅 Haz clic aquí para agregarlo a tu calendario: \\n${calUrl}`; })() } }) }}",
         "options": {}
       },
-      "id": "node-send-confirmation-confirm",
+      "id": "1ab1a914-c587-4a16-8dbe-524c9b0fc267",
       "name": "Confirmación al paciente (Confirmado)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        2850,
-        500
+        11536,
+        8880
       ],
       "credentials": {
-        "httpHeaderAuth": "WhatsApp Header Auth"
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
       }
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://www.senz-io.com/api/notifications/send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1114,47 +1199,481 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"professional_id\": \"{{ $('Buscar profesional').item.json.id }}\",\n  \"title\": \"Nueva cita agendada\",\n  \"message\": \"{{ JSON.parse($('Buscar paciente').item.json.pending_appointment).date }} a las {{ JSON.parse($('Buscar paciente').item.json.pending_appointment).time }} con {{ $('Buscar paciente').item.json.full_name }}\",\n  \"url\": \"/dashboard/appointments\"\n}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth"
+        "options": {}
       },
-      "id": "node-notify-doctor-confirm",
+      "id": "bdb87303-ca44-4d3a-b87f-b35f1b019038",
       "name": "Notificación push al médico (Confirmado)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [
-        3050,
-        500
+        11792,
+        8880
       ],
       "credentials": {
-        "httpHeaderAuth": "N8N Webhook Secret"
+        "httpHeaderAuth": {
+          "id": "bVOKxeUsYGE0fGVf",
+          "name": "Header Auth account"
+        }
       }
     },
     {
       "parameters": {
-        "resource": "row",
         "operation": "update",
         "tableId": "patients",
-        "rowId": "={{ $('Buscar paciente').item.json.id }}",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "pending_appointment": null
-          }
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar paciente').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "pending_appointment"
+            }
+          ]
         }
       },
-      "id": "node-clear-pending-cancel",
+      "id": "dd80ea75-c7d5-4741-8c0b-fe3808c8174f",
       "name": "Limpiar propuesta de cita (Cancelación)",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        2050,
-        850
+        10720,
+        9312
       ],
       "credentials": {
-        "supabaseApi": "Supabase account"
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
       }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "16a672b4-bf0f-4667-9e84-6d1fb74841fd",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        11152,
+        8432
+      ],
+      "id": "c95b6920-d58b-4848-8cfb-734622e447f2",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "blocked_slots",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "professional_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar profesional').item.json.id }}"
+            },
+            {
+              "keyName": "starts_at",
+              "condition": "lte",
+              "keyValue": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}"
+            },
+            {
+              "keyName": "ends_at",
+              "condition": "gte",
+              "keyValue": "={{ $input.item.json.date + 'T' + $input.item.json.time + ':00' }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        11376,
+        8416
+      ],
+      "id": "69c0434d-516e-4e16-9a42-182a1a794de4",
+      "name": "Get many rows",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').first().json.businessPhoneId + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').first().json.phone, type: 'text', text: { body: 'No tienes ninguna cita médica agendada actualmente que se pueda cancelar.' } }) }}",
+        "options": {}
+      },
+      "id": "d6e0f27a-ea99-49a3-ab69-d9c5e943c07d",
+      "name": "Avisar sin cita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        11184,
+        9280
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const mensaje = $('Extraer datos del mensaje').item.json.message;\nconst nombreActual = $('Buscar paciente').first().json.full_name;\nconst patientId = $('Buscar paciente').first().json.id;\n\n// Try to extract name from common patterns\nlet nuevoNombre = null;\nconst matchLlamo = mensaje.match(/(?:soy|me llamo|mi nombre es)\\s+([A-Za-záéíóúÁÉÍÓÚñÑüÜ][A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]{0,30}?)(?:\\s*[,.]|\\s+quiero|\\s+quisiera|\\s+deseo|$)/i);\nif (matchLlamo) {\n  nuevoNombre = matchLlamo[1].trim();\n}\n\n// If no pattern match, check if message is purely a name (short, no dates/keywords)\nif (!nuevoNombre) {\n  const pareceNombre = mensaje &&\n    mensaje.length < 40 &&\n    !mensaje.match(/\\d/) &&\n    !mensaje.match(/mañana|hoy|lunes|martes|miércoles|jueves|viernes|sábado|domingo|cita|agendar|quiero|hola|si|no/i);\n  if (pareceNombre) nuevoNombre = mensaje.trim();\n}\n\nif ((nombreActual === 'Desconocido' || !nombreActual) && nuevoNombre && patientId) {\n  return [{ json: { shouldUpdate: true, newName: nuevoNombre, patientId } }];\n}\nreturn [{ json: { shouldUpdate: false, newName: nombreActual, patientId } }];"
+      },
+      "id": "7c1ee2a1-109b-45cd-9456-4a6c8cb90690",
+      "name": "¿Actualizar nombre paciente?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10752,
+        7984
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.shouldUpdate }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "ab2caa52-0dc2-48f3-807c-86573f03afdb",
+      "name": "¿Nombre nuevo disponible?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        10960,
+        7984
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "patients",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.patientId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "full_name",
+              "fieldValue": "={{ $json.newName }}"
+            }
+          ]
+        }
+      },
+      "id": "03f0547d-9ce5-4a9c-8887-e2251abb161e",
+      "name": "Actualizar nombre en Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        11152,
+        7920
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ JSON.stringify($json) }}",
+              "operation": "contains",
+              "value2": "Ya existe una cita"
+            }
+          ]
+        }
+      },
+      "id": "a2f2fdb8-9644-44a2-9185-0e81074d24b8",
+      "name": "¿Error 409 API?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        12040,
+        8240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').item.json.businessPhoneId + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').item.json.phone, type: 'text', text: { body: 'Lo siento, ese horario acaba de ser ocupado. ¿Para qué otra fecha u hora te gustaría agendar?' } }) }}",
+        "options": {}
+      },
+      "id": "26795769-b9cf-4d3a-a857-c34ec727cdc8",
+      "name": "Aviso horario ocupado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        12240,
+        8140
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "78cGyV1q0CjNpPrv",
+          "name": "WhatsApp Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ JSON.stringify($json) }}",
+              "operation": "contains",
+              "value2": "Ya existe una cita"
+            }
+          ]
+        }
+      },
+      "id": "node-error-409-conf",
+      "name": "¿Error 409 (Confirmado)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        11320,
+        8880
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Execute Workflow Trigger').first().json.businessPhoneId + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Execute Workflow Trigger').first().json.phone, type: 'text', text: { body: 'Lo siento, ese horario acaba de ser ocupado mientras confirmábamos. ¿Para qué otra fecha u hora te gustaría agendar?' } }) }}",
+        "options": {}
+      },
+      "id": "node-aviso-409-conf",
+      "name": "Aviso horario ocupado (Confirmado)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        11520,
+        8780
+      ],
+      "credentials": {
+        "httpHeaderAuth": "WhatsApp Header Auth"
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "patients",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar paciente').first().json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "pending_appointment",
+              "fieldValue": ""
+            }
+          ]
+        }
+      },
+      "id": "clear-pending-invalid-schedule",
+      "name": "Limpiar propuesta (Horario Inválido)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        11592,
+        8192
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "patients",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "phone_whatsapp",
+              "fieldValue": "={{ $('Extraer datos del mensaje').item.json.phone }}"
+            },
+            {
+              "fieldId": "full_name",
+              "fieldValue": "Desconocido"
+            },
+            {
+              "fieldId": "professional_id",
+              "fieldValue": "={{ $('Buscar profesional').item.json.id }}"
+            }
+          ]
+        }
+      },
+      "id": "register-new-patient-node",
+      "name": "Registrar paciente nuevo",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        9744,
+        8624
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Universal name extractor - runs for ALL intents before routing\nconst mensaje = $('Extraer datos del mensaje').first().json.message || '';\nconst nombreActual = $('Buscar paciente').first().json.full_name || 'Desconocido';\nconst patientId = $('Buscar paciente').first().json.id;\nconst esDesconocido = nombreActual === 'Desconocido' || !nombreActual;\n\nlet extractedName = null;\n\nif (esDesconocido) {\n  // Pattern: 'soy X', 'me llamo X', 'mi nombre es X'\n  const matchExplicit = mensaje.match(\n    /(?:soy|me llamo|mi nombre es)\\s+([A-Za-záéíóúÁÉÍÓÚñÑüÜ][A-Za-záéíóúÁÉÍÓÚñÑüÜ\\s]{1,40}?)(?:\\s*[,.]|\\s+quiero|\\s+quisiera|\\s+deseo|\\s+y\\s|$)/i\n  );\n  if (matchExplicit) {\n    extractedName = matchExplicit[1].trim();\n  }\n}\n\n// Pass through the intent classification data + name info\nreturn [{\n  json: {\n    ...$input.item.json,\n    patientNameToSave: extractedName || nombreActual,\n    nameWasExtracted: !!extractedName,\n    patientId: patientId\n  }\n}];"
+      },
+      "id": "extract-name-universal",
+      "name": "Extraer nombre del mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10176,
+        8224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "patients",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.patientId }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "full_name",
+              "fieldValue": "={{ $json.patientNameToSave }}"
+            }
+          ]
+        }
+      },
+      "id": "save-name-universal",
+      "name": "Guardar nombre (universal)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        10272,
+        8224
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "vt0eORxtV4fEZYSn",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The Supabase update replaced our intent data. Restore it from the original source.\nconst intentData = $('Parsear JSON de OpenAI').first().json;\nreturn [{ json: intentData }];"
+      },
+      "id": "restore-intent-data",
+      "name": "Restaurar datos de intención",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10368,
+        8224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "check-already-registered",
+      "name": "¿Ya está registrado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        9840,
+        8624
+      ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Execute Workflow Trigger": {
       "main": [
@@ -1222,21 +1741,21 @@
       "main": [
         [
           {
-            "node": "Clasificar intención",
+            "node": "Clasificar intencion",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Presentación del consultorio",
+            "node": "Registrar paciente nuevo",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Clasificar intención": {
+    "Clasificar intencion": {
       "main": [
         [
           {
@@ -1251,7 +1770,7 @@
       "main": [
         [
           {
-            "node": "Enrutar por intención",
+            "node": "Extraer nombre del mensaje",
             "type": "main",
             "index": 0
           }
@@ -1283,40 +1802,7 @@
         ],
         [
           {
-            "node": "Responder pregunta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Responder pregunta": {
-      "main": [
-        [
-          {
-            "node": "Enviar respuesta",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Buscar cita activa (confirm)": {
-      "main": [
-        [
-          {
-            "node": "Confirmar asistencia",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Confirmar asistencia": {
-      "main": [
-        [
-          {
-            "node": "Confirmar cita vía API",
+            "node": "Responder Pregunta",
             "type": "main",
             "index": 0
           }
@@ -1334,11 +1820,67 @@
         ]
       ]
     },
+    "Responder Pregunta": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Validar fecha/hora en parámetros": {
       "main": [
         [
           {
+            "node": "¿Actualizar nombre paciente?",
+            "type": "main",
+            "index": 0
+          },
+          {
             "node": "¿Necesita más información?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Actualizar nombre paciente?": {
+      "main": [
+        [
+          {
+            "node": "¿Nombre nuevo disponible?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Nombre nuevo disponible?": {
+      "main": [
+        [
+          {
+            "node": "Actualizar nombre en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Necesita más información?": {
+      "main": [
+        [
+          {
+            "node": "Pedir fecha/hora",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validar working_hours",
             "type": "main",
             "index": 0
           }
@@ -1349,21 +1891,32 @@
       "main": [
         [
           {
-            "node": "Horario no válido",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Verificar blocked_slots",
+            "node": "If",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Verificar blocked_slots": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Horario no válido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
       "main": [
         [
           {
@@ -1385,35 +1938,6 @@
         ],
         [
           {
-            "node": "Ver disponibilidad GC",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ver disponibilidad GC": {
-      "main": [
-        [
-          {
-            "node": "¿Hay evento?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "¿Hay evento?": {
-      "main": [
-        [
-          {
-            "node": "Pedir fecha/hora",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
             "node": "Guardar propuesta de cita",
             "type": "main",
             "index": 0
@@ -1421,16 +1945,22 @@
         ]
       ]
     },
-    "Pedir confirmación": {
+    "Guardar propuesta de cita": {
       "main": [
-        []
+        [
+          {
+            "node": "Pedir confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Crear evento GC": {
       "main": [
         [
           {
-            "node": "Agendar cita vía API",
+            "node": "Confirmación al paciente",
             "type": "main",
             "index": 0
           }
@@ -1441,14 +1971,29 @@
       "main": [
         [
           {
-            "node": "Confirmación al paciente",
+            "node": "¿Error 409 API?",
             "type": "main",
             "index": 0
           }
-        ],
+        ]
+      ]
+    },
+    "Confirmación al paciente": {
+      "main": [
         [
           {
             "node": "Notificación push al médico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar propuesta de cita (Cancelación)": {
+      "main": [
+        [
+          {
+            "node": "Buscar cita activa (cancelar)",
             "type": "main",
             "index": 0
           }
@@ -1477,7 +2022,7 @@
         ],
         [
           {
-            "node": "Enviar respuesta",
+            "node": "Avisar sin cita",
             "type": "main",
             "index": 0
           }
@@ -1503,7 +2048,11 @@
             "type": "main",
             "index": 0
           }
-        ],
+        ]
+      ]
+    },
+    "Eliminar evento GC": {
+      "main": [
         [
           {
             "node": "Preguntar si desea reagendar",
@@ -1515,13 +2064,6 @@
     },
     "Preguntar si desea reagendar": {
       "main": [
-        [
-          {
-            "node": "Validar fecha/hora en parámetros",
-            "type": "main",
-            "index": 0
-          }
-        ],
         [
           {
             "node": "Encuesta de cancelación",
@@ -1544,32 +2086,9 @@
     },
     "Encuesta de satisfacción": {
       "main": [
-        []
-      ]
-    },
-    "¿Necesita más información?": {
-      "main": [
         [
           {
-            "node": "Pedir fecha/hora",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Validar working_hours",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Guardar propuesta de cita": {
-      "main": [
-        [
-          {
-            "node": "Pedir confirmación",
+            "node": "Guardar encuesta",
             "type": "main",
             "index": 0
           }
@@ -1580,7 +2099,7 @@
       "main": [
         [
           {
-            "node": "Crear evento GC (Confirmado)",
+            "node": "Agendar cita vía API (Confirmado)",
             "type": "main",
             "index": 0
           }
@@ -1598,7 +2117,7 @@
       "main": [
         [
           {
-            "node": "Agendar cita vía API (Confirmado)",
+            "node": "Limpiar propuesta de cita",
             "type": "main",
             "index": 0
           }
@@ -1609,7 +2128,7 @@
       "main": [
         [
           {
-            "node": "Limpiar propuesta de cita",
+            "node": "¿Error 409 (Confirmado)?",
             "type": "main",
             "index": 0
           }
@@ -1638,16 +2157,161 @@
         ]
       ]
     },
-    "Limpiar propuesta de cita (Cancelación)": {
+    "Buscar cita activa (confirm)": {
       "main": [
         [
           {
-            "node": "Buscar cita activa (cancelar)",
+            "node": "Confirmar asistencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar asistencia": {
+      "main": [
+        [
+          {
+            "node": "Confirmar cita vía API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar cita vía API": {
+      "main": [
+        [
+          {
+            "node": "Respuesta confirmación cita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error 409 API?": {
+      "main": [
+        [
+          {
+            "node": "Aviso horario ocupado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Crear evento GC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error 409 (Confirmado)?": {
+      "main": [
+        [
+          {
+            "node": "Aviso horario ocupado (Confirmado)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Crear evento GC (Confirmado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Horario no válido": {
+      "main": [
+        [
+          {
+            "node": "Limpiar propuesta (Horario Inválido)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar paciente nuevo": {
+      "main": [
+        [
+          {
+            "node": "Presentación del consultorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer nombre del mensaje": {
+      "main": [
+        [
+          {
+            "node": "Guardar nombre (universal)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar nombre (universal)": {
+      "main": [
+        [
+          {
+            "node": "Restaurar datos de intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restaurar datos de intención": {
+      "main": [
+        [
+          {
+            "node": "Enrutar por intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Ya está registrado?": {
+      "main": [
+        [
+          {
+            "node": "Presentación del consultorio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar paciente nuevo",
             "type": "main",
             "index": 0
           }
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cfc6e5f6-bb87-4195-b2e9-bb878ec4f496",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4e265b3499c2b26939baa2a14b323c483270c875c9214b7a59db5fb5af05e324"
+  },
+  "nodeGroups": [],
+  "id": "4eY6HnN4y4TFVGJp",
+  "tags": []
 }

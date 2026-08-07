@@ -80,7 +80,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Construir prompt para abogados\nconst messages = $input.all();\nconst professional = $('Execute Workflow Trigger').item.json.professional;\nconst customer = {};\nconst incoming = $('Execute Workflow Trigger').item.json;\n\nconst businessName = professional.full_name || 'el despacho';\nconst businessConfig = professional.business_config || {};\nconst btConfig = professional.business_types?.config || {};\n\n// Bugfix: Extract names/descriptions from custom fields object array\nconst customFields = btConfig.custom_fields || [];\nconst areas = customFields.map(f => f.description || f.name);\nif (areas.length === 0) {\n  areas.push('área del derecho', 'descripción del caso', 'modalidad');\n}\n\nconst tono = businessConfig.ai_tone || 'profesional, empático y claro';\nconst modalities = businessConfig.modalities || ['Presencial', 'Videollamada', 'Llamada telefónica'];\n\nconst systemPrompt = `Eres el asistente virtual del despacho de abogados \"${businessName}\".\\nTu objetivo es atender al cliente, entender su caso jurídico y agendar una consulta si aplica.\\n\\nTono: ${tono}\\n\\nINSTRUCCIONES:\\n1. Saluda al cliente por su nombre si lo conoces.\\n2. Pregunta de forma conversacional por: ${areas.join(', ')}.\\n3. Modalidades disponibles para la consulta: ${modalities.join(', ')}.\\n4. Cuando tengas nombre, fecha/hora preferida, área del derecho, descripción breve y modalidad → ejecuta la función Schedule_Legal_Consultation.\\n5. Si el cliente hace preguntas de asesoría legal, responde orientativamente pero SIEMPRE agrega: \"Esta información es orientativa. La evaluación definitiva de tu caso requiere una consulta formal con el abogado.\"\\n6. NUNCA des opiniones jurídicas definitivas sobre casos específicos.\\n7. Responde siempre en español.\\n8. Sé conciso — máximo 3 oraciones por respuesta.`;\n\n// Construir historial previo ordenado cronológicamente\nconst sortedMessages = [...messages]\n  .filter(m => m.json && m.json.content)\n  .sort((a, b) => new Date(a.json.created_at).getTime() - new Date(b.json.created_at).getTime());\n\nconst historial = sortedMessages.map(m => ({\n  role: m.json.sender === 'user' ? 'user' : 'assistant',\n  content: m.json.content\n}));\n\nconst openaiMessages = [\n  { role: 'system', content: systemPrompt },\n  ...historial,\n  { role: 'user', content: incoming.message }\n];\n\nreturn [{\n  json: {\n    openaiMessages,\n    professional,\n    customer,\n    incoming\n  }\n}];"
+        "jsCode": "const currentDate = $now.setLocale('es').toFormat('cccc, dd/MM/yyyy HH:mm');\n// Construir prompt para abogados\nconst messages = $input.all();\nconst professional = $('Execute Workflow Trigger').item.json.professional;\nconst customer = {};\nconst incoming = $('Execute Workflow Trigger').item.json;\n\nconst businessName = professional.full_name || 'el despacho';\nconst businessConfig = professional.business_config || {};\nconst btConfig = professional.business_types?.config || {};\n\n// Bugfix: Extract names/descriptions from custom fields object array\nconst customFields = btConfig.custom_fields || [];\nconst areas = customFields.map(f => f.description || f.name);\nif (areas.length === 0) {\n  areas.push('área del derecho', 'descripción del caso', 'modalidad');\n}\n\nconst tono = businessConfig.ai_tone || 'profesional, empático y claro';\nconst modalities = businessConfig.modalities || ['Presencial', 'Videollamada', 'Llamada telefónica'];\n\nconst systemPrompt = `Hoy es ${currentDate}.\\n\\nEres el asistente virtual del despacho de abogados \"${businessName}\".\\nTu objetivo es atender al cliente, entender su caso jurídico y agendar una consulta si aplica.\\n\\nTono: ${tono}\\n\\nINSTRUCCIONES:\\n1. Saluda al cliente por su nombre si lo conoces.\\n2. Pregunta de forma conversacional por: ${areas.join(', ')}.\\n3. Modalidades disponibles para la consulta: ${modalities.join(', ')}.\\n4. Cuando tengas nombre, fecha/hora preferida, área del derecho, descripción breve y modalidad → ejecuta la función Schedule_Legal_Consultation.\\n5. Si el cliente hace preguntas de asesoría legal, responde orientativamente pero SIEMPRE agrega: \"Esta información es orientativa. La evaluación definitiva de tu caso requiere una consulta formal con el abogado.\"\\n6. NUNCA des opiniones jurídicas definitivas sobre casos específicos.\\n7. Responde siempre en español.\\n8. Sé conciso — máximo 3 oraciones por respuesta.`;\n\n// Construir historial previo ordenado cronológicamente\nconst sortedMessages = [...messages]\n  .filter(m => m.json && m.json.content)\n  .sort((a, b) => new Date(a.json.created_at).getTime() - new Date(b.json.created_at).getTime());\n\nconst historial = sortedMessages.map(m => ({\n  role: m.json.sender === 'user' ? 'user' : 'assistant',\n  content: m.json.content\n}));\n\nconst openaiMessages = [\n  { role: 'system', content: systemPrompt },\n  ...historial,\n  { role: 'user', content: incoming.message }\n];\n\nreturn [{\n  json: {\n    openaiMessages,\n    professional,\n    customer,\n    incoming\n  }\n}];"
       },
       "id": "node-build-prompt",
       "name": "Build Legal Prompt",
@@ -149,27 +149,6 @@
     },
     {
       "parameters": {
-        "operation": "create",
-        "calendar": "primary",
-        "start": "={{ $json.date_time }}",
-        "end": "={{ $json.end_time }}",
-        "summary": "Consulta jurídica - {{ $json.client_name }}",
-        "description": "={{ $json.custom_data }}"
-      },
-      "id": "node-6",
-      "name": "Google Calendar",
-      "type": "n8n-nodes-base.googleCalendar",
-      "typeVersion": 1,
-      "position": [
-        2250,
-        200
-      ],
-      "credentials": {
-        "googleCalendarOAuth2Api": "Google Calendar account"
-      }
-    },
-    {
-      "parameters": {
         "method": "POST",
         "url": "https://www.senz-io.com/api/n8n/appointments",
         "authentication": "genericCredentialType",
@@ -189,19 +168,21 @@
       ],
       "credentials": {
         "httpHeaderAuth": "N8N Webhook Secret"
-      }
+      },
+      "settings": {},
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "// Construir mensaje de confirmación personalizado\nconst args = $('Extract Arguments').item.json;\nconst date = new Date(args.date_time);\nconst fecha = date.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst hora = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });\n\nconst modalityNormalized = (args.modality || '').toLowerCase().trim();\nconst modalidadTexto = {\n  presencial: 'de forma presencial en el despacho',\n  videollamada: 'por videollamada',\n  telefono: 'por llamada telefónica',\n  llamada: 'por llamada telefónica'\n};\n\nconst confirmacion = `✅ *Consulta jurídica agendada*\\n\\n📋 *Área:* ${args.legal_area}\\n📅 *Fecha:* ${fecha}\\n⏰ *Hora:* ${hora}\\n📍 *Modalidad:* ${modalidadTexto[modalityNormalized] || args.modality}\\n\\nEl abogado revisará tu caso y se pondrá en contacto contigo para confirmar. Si necesitas cancelar o reagendar, escríbenos con anticipación.\\n\\n_Esta información es orientativa. La evaluación definitiva de tu caso requiere la consulta formal con el abogado._`;\n\nreturn [{ json: { confirmation_message: confirmacion, ...args } }];"
+        "jsCode": "// Construir mensaje de confirmación personalizado\nconst args = $('Extract Arguments').first().json;\nconst date = new Date(args.date_time);\nconst fecha = date.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });\nconst hora = date.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });\n\nconst modalityNormalized = (args.modality || '').toLowerCase().trim();\nconst modalidadTexto = {\n  presencial: 'de forma presencial en el despacho',\n  videollamada: 'por videollamada',\n  telefono: 'por llamada telefónica',\n  llamada: 'por llamada telefónica'\n};\n\n// Generar enlace de Google Maps (si es presencial)\nconst address = args.professional.business_config?.clinic_address || '';\nlet mapsLink = '';\nif (modalityNormalized === 'presencial' && address) {\n  mapsLink = `\\n🗺️ Ver en mapa: https://maps.google.com/?q=${encodeURIComponent(address)}`;\n}\n\n// Generar enlace de Google Calendar (asumiendo 60 min de duración para abogados)\nconst pad = (n) => n.toString().padStart(2, '0');\nconst h = date.getHours();\nconst m = date.getMinutes();\nlet m2 = m;\nlet h2 = h + 1; // 60 minutes duration\nif (h2 >= 24) h2 = 23; // prevent overflow for simplicity\n\nconst start = pad(h) + pad(m) + '00';\nconst end = pad(h2) + pad(m2) + '00';\nconst dString = args.date_time.split('T')[0].replace(/-/g, '');\nconst dates = dString + 'T' + start + '/' + dString + 'T' + end;\n\nconst calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=Consulta+Jurídica&dates=${dates}&location=${encodeURIComponent(address)}&details=${encodeURIComponent(args.custom_data || 'Consulta con abogado')}`;\n\nconst confirmacion = `✅ *Consulta jurídica agendada*\\n\\n📋 *Área:* ${args.legal_area}\\n📅 *Fecha:* ${fecha}\\n⏰ *Hora:* ${hora}\\n📍 *Modalidad:* ${modalidadTexto[modalityNormalized] || args.modality}${mapsLink}\\n\\n📅 Haz clic aquí para agregarlo a tu calendario:\\n${calendarUrl}\\n\\nEl abogado revisará tu caso y se pondrá en contacto contigo para confirmar. Si necesitas cancelar o reagendar, escríbenos con anticipación.\\n\\n_Esta información es orientativa. La evaluación definitiva de tu caso requiere la consulta formal con el abogado._`;\n\nreturn [{ json: { confirmation_message: confirmacion, ...args } }];\n"
       },
       "id": "node-build-confirm",
       "name": "Build Confirmation Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        2650,
-        260
+        2750,
+        360
       ]
     },
     {
@@ -285,6 +266,50 @@
         2350,
         680
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ JSON.stringify($json) }}",
+              "operation": "contains",
+              "value2": "Ya existe una cita"
+            }
+          ]
+        }
+      },
+      "id": "node-error-409",
+      "name": "¿Error 409 API?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2550,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v17.0/' + $('Extract Arguments').first().json.professional.whatsapp_phone_number_id + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Extract Arguments').first().json.incoming.phone, type: 'text', text: { body: 'Lo siento, ese horario acaba de ser ocupado. ¿Para qué otra fecha u hora te gustaría agendar?' } }) }}",
+        "options": {}
+      },
+      "id": "node-aviso-409",
+      "name": "Aviso horario ocupado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2750,
+        160
+      ],
+      "credentials": {
+        "httpHeaderAuth": "WhatsApp Header Auth"
+      }
     }
   ],
   "connections": {
@@ -358,7 +383,7 @@
       "main": [
         [
           {
-            "node": "Google Calendar",
+            "node": "Save Appointment (API)",
             "type": "main",
             "index": 0
           }
@@ -372,22 +397,11 @@
         ]
       ]
     },
-    "Google Calendar": {
-      "main": [
-        [
-          {
-            "node": "Save Appointment (API)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Save Appointment (API)": {
       "main": [
         [
           {
-            "node": "Build Confirmation Message",
+            "node": "¿Error 409 API?",
             "type": "main",
             "index": 0
           }
@@ -410,6 +424,24 @@
         [
           {
             "node": "Get Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error 409 API?": {
+      "main": [
+        [
+          {
+            "node": "Aviso horario ocupado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Confirmation Message",
             "type": "main",
             "index": 0
           }
