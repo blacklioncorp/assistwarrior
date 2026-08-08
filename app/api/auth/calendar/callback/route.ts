@@ -12,10 +12,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
     }
 
+    const redirectUri = `${req.nextUrl.origin}/api/auth/calendar/callback`
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/calendar/callback`
+      redirectUri
     )
 
     const { tokens } = await oauth2Client.getToken(code)
